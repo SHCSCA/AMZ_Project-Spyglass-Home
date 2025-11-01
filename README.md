@@ -131,3 +131,202 @@
 | `GET` | `/api/alerts` | (V2.0) 获取全局告警 | **全局告警中心** (P0) |
 | `GET` | `/api/asin/{id}/alerts` | (V2.0) 获取ASIN特定告警 | **详情页-Tab1** (P1) |
 | `GET` | `/api/asin/{id}/reviews`| (V2.0) 获取ASIN差评 | **详情页-Tab2** (P1) |
+
+---
+
+## 5. 项目实现现状 (Implementation Status)
+
+本仓库已初始化一个基于 **Vite + React + TypeScript + Ant Design + ECharts** 的前端项目，实现了以下 P0 基础能力：
+
+| 模块 | 完成情况 | 说明 |
+| :-- | :-- | :-- |
+| 全局布局导航 F-UI-101 | ✅ | 侧边菜单切换 Alerts / Dashboard |
+| 加载与错误状态 F-UI-102/103 | ✅ | `Loading` 与 `ErrorMessage` 组件封装 |
+| 全局告警中心 F-UI-201~204 | ✅ | 列表展示告警，点击跳转详情页 |
+| 仪表盘表格 F-UI-301~305 | ✅ | 表格列齐全，增/改/删 ASIN 操作模态框 |
+| ASIN 详情页基础图表 F-UI-401~402 | ✅ | 价格 & BSR 折线图，支持 7/30/90 天切换 |
+| 库存历史图表 F-UI-402 (P1) | ✅ | 详情页新增库存折线图 |
+| 详情页告警 Tab F-UI-401/Alerts (P1) | ✅ | Tabs: 告警记录显示 |
+| 详情页差评 Tab F-UI-401/Reviews (P1) | ✅ | Tabs: 差评列表（1-3星过滤） |
+| 差评分页 (P1 扩展) | ✅ | 前端分页参数 page/limit 支持 |
+| 详情页内容 Diff Tab (V2.1 提前) | ✅ | 使用 jsdiff 显示标题/要点差异 |
+| 仪表盘告警红点 (V2.1 优化) | ✅ | NEW 告警在对应 ASIN 行展示红点 |
+| 告警标记已读 | ✅ | 单条与全部标记为已读按钮 |
+| GET 请求缓存 | ✅ | 基础 30s 内存缓存 (api/client.ts) |
+| API 基础客户端 NFR-UI-A001 | ✅ | `VITE_API_BASE_URL` 环境变量配置 |
+
+尚未实现（后续迭代）：告警聚合标识、已读/清除告警、Diff 对比、性能进一步优化等 P1 / V2.1 需求。
+
+### 5.1 后端真实接口对齐 (2025-11)
+
+前端已重构以匹配后端统一分页响应 `PageResponse<T>`：
+
+```
+{
+    "items": [...],
+    "total": 123,
+    "page": 0,
+    "size": 20,
+    "totalPages": 7,
+    "hasNext": true,
+    "hasPrevious": false
+}
+```
+
+| 功能 | 端点 | 主要查询参数 | 说明 |
+|------|------|--------------|------|
+| 全局告警 | `GET /api/alerts` | page,size,type,status? | status 目前后端忽略 |
+| ASIN 告警 | `GET /api/asin/{id}/alerts` | page,size,type,from,to | 时间范围默认 30 天 |
+| 历史快照 | `GET /api/asin/{id}/history` | range(7d/30d/90d),page,size | 前端取 items 组装图表 |
+| 评论/差评 | `GET /api/asin/{id}/reviews` | rating=negative,page,size | rating=negative => 1~3 星 |
+| ASIN 列表 | `GET /api/asin` | page,size | 返回基础配置字段 |
+
+字段映射（后端 -> 前端内部类型）：
+
+| 后端 | 前端 | 说明 |
+|------|------|------|
+| AlertLogResponse.alertType | AlertItem.type | 告警类型 |
+| AlertLogResponse.alertAt | AlertItem.createdAt | 告警时间 |
+| AlertLogResponse.asinCode | AlertItem.asin | ASIN 代码 |
+| ReviewAlertResponse.reviewDate | ReviewItem.createdAt | 使用评论日期展示 |
+| ReviewAlertResponse.reviewText | ReviewItem.text | 评论正文 |
+| AsinHistoryPoint.snapshotAt | HistoryPoint.timestamp | 用于图表 X 轴 |
+
+下线/暂未实现端点说明：
+
+| 原假设 | 后端状态 | 当前处理 |
+|--------|----------|----------|
+| POST /api/alerts/{id}/read | 未实现 | 移除 UI 功能 |
+| POST /api/alerts/mark-all-read | 未实现 | 移除 UI 功能 |
+| GET /api/asin/{id}/content-diff | 未实现 | 暂时隐藏 Diff Tab (保留类型占位) |
+
+### 5.2 前端新增增强特性 (最新)
+
+| 特性 | 描述 | 位置 |
+|------|------|------|
+| 全局告警类型过滤 | 支持按告警类型下拉筛选并分页刷新 | `AlertsPage` |
+| ASIN 告警过滤 | 支持类型 + 起止日期过滤该 ASIN 告警 | `AsinDetailPage` Tabs->告警 |
+| 告警严重级别标签 | 根据 `severity` 渲染颜色 Tag (INFO 蓝 / WARN 橙 / ERROR 红) | 告警列表 |
+| 通用分页 Hook | `usePagedFetch` 抽象分页获取与状态管理 | `src/hooks/usePagedFetch.ts` |
+| 过滤控件测试 | 新增最小测试验证过滤控件渲染 | `AlertsPageFilters.test.tsx` |
+
+
+## 6. 目录结构 (Project Structure)
+
+```
+.
+├── index.html
+├── package.json
+├── tsconfig.json
+├── vite.config.ts
+├── .env.example              # 环境变量模板（需复制为 .env 设置真实后端 API 地址）
+├── src
+│   ├── main.tsx              # 应用入口
+│   ├── App.tsx               # 顶层布局与路由
+│   ├── api
+│   │   └── client.ts         # API 请求封装
+│   ├── components            # 通用组件 (Sidebar / Loading / ErrorMessage)
+│   ├── hooks
+│   │   └── useFetch.ts       # 通用数据请求 Hook
+│   ├── pages
+│   │   ├── AlertsPage.tsx    # 全局告警列表页
+│   │   ├── DashboardPage.tsx # 仪表盘增删改查页
+│   │   ├── AsinDetailPage.tsx# ASIN 详情页（价格 & BSR 图表）
+│   │   └── ReactEChartsLazy.tsx # 简单 ECharts 包装
+│   └── types
+│       └── index.ts          # TS 接口类型定义
+```
+
+## 7. 本地开发与运行 (Getting Started)
+
+### 7.1 前置条件
+- Node.js >= 18
+
+### 7.2 安装依赖
+```bash
+npm install
+```
+
+### 7.3 配置后端地址
+复制 `.env.example` 为 `.env` 并修改：
+```bash
+cp .env.example .env
+echo "VITE_API_BASE_URL=https://your-real-backend" >> .env
+```
+
+### 7.4 启动开发服务器
+```bash
+npm run dev
+```
+
+访问 `http://localhost:5173`。
+
+### 7.5 构建生产包
+```bash
+npm run build
+```
+
+### 7.6 预览构建结果
+```bash
+npm run preview
+```
+
+## 8. 后续迭代计划 (Next Milestones)
+
+| 优先级 | 任务 | 说明 |
+| :-- | :-- | :-- |
+| P1 | 更丰富错误重试 | ErrorMessage 增加重试按钮 |
+| P1 | 差评后端分页/总数 | 当前用前端 total 兜底 |
+| P1 | 缓存失效策略优化 | 依据 ETag / Last-Modified |
+| P2 | 告警筛选与搜索 | 类型/时间范围过滤 |
+| P2 | Diff 支持更多字段 | 五点、A+、图片差异高亮 |
+| P2 | 性能优化 | 图表数据降采样 + SSR/预渲染评估 |
+| P2 | 性能优化 | 代码分割、缓存策略、骨架屏 |
+
+## 9. 性能与NFR落实 (NFR Notes)
+
+| NFR | 当前策略 | 后续优化 |
+| :-- | :-- | :-- |
+| P001 页面首屏 <3s | 精简依赖；ECharts按需导入；表格首屏 API 单次请求 | 代码分割、HTTP 缓存、Lazy Tabs |
+| P002 导航切换 <500ms | 客户端路由 + 轻量页面组件 | 预取下一页面数据 |
+| P003 图表渲染 <1.5s | 数据点少时直接一次性渲染 | 虚拟化/降采样大数据集 |
+| A001 API 可配置 | 使用 `VITE_API_BASE_URL` 环境变量 | 引入多环境 `.env.*` 并文档化 |
+| Cache | 基于内存 TTL 30s | 改为 SW/IndexedDB 持久缓存 |
+| R001 响应式 | Ant Design 默认响应式栅格 | 针对移动优化菜单折叠 |
+
+## 10. 问题与假设 (Assumptions)
+
+1. 后端提供的字段名称与当前 TS 接口一致，若不一致需在 `api` 层做映射。 
+2. 历史数据接口 `/api/asin/{id}/history` 返回包含价格与 BSR 的统一数组；库存暂缺将后续扩展。 
+3. 差评与告警的分页策略暂按照后端默认（无分页或服务端限制）。 
+
+## 11. 贡献指南 (Contributing)
+
+欢迎通过 Pull Request 提交改进：
+- 确保遵守现有代码风格 (ESLint 通过)。
+- 为新增 API 类型更新 `src/types/index.ts`。
+- 添加必要的单元测试（计划引入 Vitest）。
+    - 已初步集成 Vitest + RTL (`npm run test`)；示例测试位于 `src/__tests__/`。
+    - 如需添加组件测试，推荐：mock fetch、使用 `screen.findBy...` 处理异步加载。
+
+## 12. 缓存策略说明 (Caching)
+
+当前仅对 GET 请求做简单 30 秒内存缓存：
+- 实现位置：`src/api/client.ts` 使用 Map 存储 (url -> {expiry,data})。
+- 命中条件：同 URL + 未过期。
+- 清理：调用 `apiCacheClear()` 或页面刷新。
+未来扩展：Service Worker、基于 HTTP 头的条件请求（If-None-Match）。
+
+## 13. 测试 (Testing)
+
+运行：`npm run test`
+包含基础用例：
+- apiClient 错误与成功路径。
+- DashboardPage / AlertsPage 渲染不报错。
+后续建议：
+- 为 Diff 组件增加快照测试。
+- 使用 MSW mock 后端多场景（分页、错误码）。
+
+---
+
+以下为原始 PRD 内容：
