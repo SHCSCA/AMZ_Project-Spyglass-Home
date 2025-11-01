@@ -251,7 +251,7 @@ npm install
 复制 `.env.example` 为 `.env` 并修改：
 ```bash
 cp .env.example .env
-echo "VITE_API_BASE_URL=https://your-real-backend" >> .env
+echo "VITE_API_BASE_URL=https://shcamz.xyz:8081" >> .env
 ```
 
 ### 7.4 启动开发服务器
@@ -259,7 +259,7 @@ echo "VITE_API_BASE_URL=https://your-real-backend" >> .env
 npm run dev
 ```
 
-访问 `http://localhost:5173`。
+访问 `http://localhost:8082`。
 
 ### 7.5 构建生产包
 ```bash
@@ -276,19 +276,19 @@ npm run preview
 #### 构建镜像
 ```bash
 docker build -t spyglass-frontend \
-    --build-arg VITE_API_BASE_URL="http://your-backend-host:8080" .
+    --build-arg VITE_API_BASE_URL="https://shcamz.xyz:8081" .
 ```
 
 #### 运行容器
 ```bash
-docker run -d --name spyglass-frontend -p 8080:80 spyglass-frontend
+docker run -d --name spyglass-frontend -p 8082:80 spyglass-frontend
 ```
-访问: http://localhost:8080
+访问: http://localhost:8082
 
 #### 使用 docker-compose
 `docker-compose.yml` 已内置：
 ```bash
-VITE_API_BASE_URL=http://backend:8080 docker compose up -d --build
+VITE_API_BASE_URL=https://shcamz.xyz:8081 docker compose up -d --build
 ```
 
 > 注意：Vite 前端在构建阶段已将 `VITE_API_BASE_URL` 编译进 bundle。要在运行时动态切换后端地址，可采用以下策略：

@@ -5,13 +5,14 @@ services:
       context: .
       args:
         # 构建时注入（静态编译进 bundle）
-        VITE_API_BASE_URL: ${VITE_API_BASE_URL-http://localhost:8080}
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL-https://shcamz.xyz:8081}
     image: spyglass-frontend:latest
     ports:
-      - "8080:80"
+      # 将宿主机 8082 映射到容器 80 (Nginx)
+      - "8082:80"
     environment:
       # 纯静态构建后此处不会改变前端已编译的 API 地址；如需运行时可配，需改为 nginx 反代或 window.__APP_CONFIG__ 注入方案
-      VITE_API_BASE_URL: ${VITE_API_BASE_URL-http://localhost:8080}
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL-https://shcamz.xyz:8081}
     depends_on: []
     # 如果需要让 Nginx 直接代理 /api 到后端，可在此扩展 backend 服务并替换 nginx.conf
     # volumes:

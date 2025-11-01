@@ -21,5 +21,5 @@ EXPOSE 80
 HEALTHCHECK CMD wget -q -O - http://localhost/ || exit 1
 
 # 说明：
-# 构建: docker build -t spyglass-frontend --build-arg VITE_API_BASE_URL=http://backend:8080 .
-# 运行: docker run -p 8080:80 spyglass-frontend
+# 构建: docker build -t spyglass-frontend --build-arg VITE_API_BASE_URL=https://shcamz.xyz:8081 .
+# 运行: docker run -p 8082:80 spyglass-frontend
