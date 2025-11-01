@@ -11,7 +11,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "$0")"/.. && pwd)"
 cd "$ROOT_DIR"
 
-: "${VITE_API_BASE_URL:=https://shcamz.xyz:8081}"
+: "${VITE_API_BASE_URL:=http://shcamz.xyz:8081}"
 : "${FRONTEND_PORT:=8082}"
 : "${APP_VERSION:=latest}"
 : "${APP_BUILD_TIME:=$(date +%Y%m%d%H%M%S)}"
