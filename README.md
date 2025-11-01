@@ -323,6 +323,46 @@ VITE_API_BASE_URL=http://shcamz.xyz:8081 FRONTEND_PORT=9090 ./scripts/docker-up.
 | 跨域 (CORS) | 浏览器控制台提示 CORS | 后端启用 CORS 或通过同域反代 `/api`。|
 | 修改后端地址失效 | 修改 compose 环境变量无效 | 重新 build 镜像；或改用反代方案。|
 
+### HTTP / HTTPS 与 SSL 协议错误说明
+
+如果将后端地址设置为 `https://` 但真实服务仅监听 `http://`，浏览器将尝试 TLS 握手失败并出现：
+
+```
+ERR_SSL_PROTOCOL_ERROR
+```
+
+解决方式：
+1. 临时：使用 `http://` 协议访问后端 (`VITE_API_BASE_URL=http://...`)。
+2. 正式生产：在前端前面加一层反向代理 (Nginx / Caddy) 获取合法证书，并在代理层转发 `/api` 到后端 HTTP。
+3. 若后端直接启用 HTTPS：配置证书并确认端口开启 TLS，再把前端变量改为对应 `https://`。
+
+示例 Nginx 反代片段：
+```nginx
+server {
+    listen 443 ssl;
+    server_name shcamz.xyz;
+    ssl_certificate /etc/letsencrypt/live/shcamz.xyz/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/shcamz.xyz/privkey.pem;
+
+    location / {
+        root /usr/share/nginx/html;
+        try_files $uri /index.html;
+    }
+    location /api/ {
+        proxy_pass http://shcamz.xyz:8081/api/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+```
+
+构建策略建议：
+| 场景 | 推荐变量值 | 说明 |
+|------|------------|------|
+| 本地调试 | `http://shcamz.xyz:8081` | 避免 SSL 错误 |
+| 生产（有反代） | `/api` | 通过同域反代减少跨域与证书配置复杂度 |
+| 生产（后端直连且有证书） | `https://shcamz.xyz:8081` | 后端自身处理 TLS |
+
 
 ## 8. 后续迭代计划 (Next Milestones)
 
