@@ -251,7 +251,7 @@ npm install
 复制 `.env.example` 为 `.env` 并修改：
 ```bash
 cp .env.example .env
-echo "VITE_API_BASE_URL=http://shcamz.xyz:8081" >> .env
+echo "VITE_API_BASE_URL=/api" >> .env
 ```
 
 ### 7.4 启动开发服务器
@@ -276,7 +276,7 @@ npm run preview
 #### 构建镜像
 ```bash
 docker build -t spyglass-frontend \
-    --build-arg VITE_API_BASE_URL="http://shcamz.xyz:8081" .
+    --build-arg VITE_API_BASE_URL="/api" .
 ```
 
 #### 运行容器
@@ -288,7 +288,7 @@ docker run -d --name spyglass-frontend -p 8082:80 spyglass-frontend
 #### 使用 docker-compose
 `docker-compose.yml` 已内置：
 ```bash
-VITE_API_BASE_URL=http://shcamz.xyz:8081 docker compose up -d --build
+VITE_API_BASE_URL=/api docker compose up -d --build
 ```
 
 #### 一键构建并启动（脚本）
@@ -297,7 +297,7 @@ VITE_API_BASE_URL=http://shcamz.xyz:8081 docker compose up -d --build
 默认变量：
 | 变量 | 默认值 | 说明 |
 |------|--------|------|
-| VITE_API_BASE_URL | http://shcamz.xyz:8081 | 后端 API 地址 |
+| VITE_API_BASE_URL | /api | 后端 API 相对路径 (由 Nginx 反代到真实后端) |
 | FRONTEND_PORT | 8082 | 宿主机映射端口 |
 | APP_VERSION | latest | 前端镜像标签 |
 | APP_BUILD_TIME | 当前时间戳 | 写入镜像构建参数 |
@@ -308,7 +308,7 @@ VITE_API_BASE_URL=http://shcamz.xyz:8081 docker compose up -d --build
 ```
 自定义后端与端口：
 ```bash
-VITE_API_BASE_URL=http://shcamz.xyz:8081 FRONTEND_PORT=9090 ./scripts/docker-up.sh
+VITE_API_BASE_URL=/api FRONTEND_PORT=9090 ./scripts/docker-up.sh
 ```
 脚本执行后访问：`http://localhost:<FRONTEND_PORT>`
 
