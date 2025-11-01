@@ -291,6 +291,27 @@ docker run -d --name spyglass-frontend -p 8082:80 spyglass-frontend
 VITE_API_BASE_URL=https://shcamz.xyz:8081 docker compose up -d --build
 ```
 
+#### 一键构建并启动（脚本）
+提供脚本 `scripts/docker-up.sh` 用于自动化：构建镜像 + 编排启动。
+
+默认变量：
+| 变量 | 默认值 | 说明 |
+|------|--------|------|
+| VITE_API_BASE_URL | https://shcamz.xyz:8081 | 后端 API 地址 |
+| FRONTEND_PORT | 8082 | 宿主机映射端口 |
+| APP_VERSION | latest | 前端镜像标签 |
+| APP_BUILD_TIME | 当前时间戳 | 写入镜像构建参数 |
+
+使用示例：
+```bash
+./scripts/docker-up.sh
+```
+自定义后端与端口：
+```bash
+VITE_API_BASE_URL=https://shcamz.xyz:8081 FRONTEND_PORT=9090 ./scripts/docker-up.sh
+```
+脚本执行后访问：`http://localhost:<FRONTEND_PORT>`
+
 > 注意：Vite 前端在构建阶段已将 `VITE_API_BASE_URL` 编译进 bundle。要在运行时动态切换后端地址，可采用以下策略：
 > 1. 通过 Nginx 反向代理 `/api/` 到实际后端，构建时使用相对路径 `/api`。
 > 2. 构建注入占位变量，在 `index.html` 里通过运行时脚本注入 `window.__APP_CONFIG__` 并在 API client 读取（后续可扩展）。
