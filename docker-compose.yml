@@ -1,7 +1,7 @@
 version: '3.8'
 
 x-environment-defaults: &env_defaults
-  VITE_API_BASE_URL: ${VITE_API_BASE_URL-https://shcamz.xyz:8081}
+  VITE_API_BASE_URL: ${VITE_API_BASE_URL-http://shcamz.xyz:8081}
   APP_VERSION: ${APP_VERSION-latest}
 
 services:
@@ -10,7 +10,7 @@ services:
       context: .
       args:
         # 构建时注入（静态编译进 bundle）
-        VITE_API_BASE_URL: ${VITE_API_BASE_URL-https://shcamz.xyz:8081}
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL-http://shcamz.xyz:8081}
         APP_BUILD_TIME: ${APP_BUILD_TIME-$(date +%Y%m%d%H%M%S)}
     image: spyglass-frontend:latest
     ports:
@@ -28,7 +28,7 @@ services:
     profiles: ["frontend"]
     labels:
       com.spyglass.role: frontend
-      com.spyglass.api-base: ${VITE_API_BASE_URL-https://shcamz.xyz:8081}
+      com.spyglass.api-base: ${VITE_API_BASE_URL-http://shcamz.xyz:8081}
     depends_on: []
     # 如果需要让 Nginx 直接代理 /api 到后端，可在此扩展 backend 服务并替换 nginx.conf
     # volumes:
