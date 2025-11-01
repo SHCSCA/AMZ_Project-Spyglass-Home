@@ -1,0 +1,13 @@
+node_modules
+.dist
+coverage
+dist
+.git
+.gitignore
+Dockerfile
+npm-debug.log
+yarn-error.log
+.vscode
+.idea
+*.swp
+.env

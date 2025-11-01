@@ -271,6 +271,38 @@ npm run build
 npm run preview
 ```
 
+### 7.7 Docker 部署 (推荐生产方式)
+
+#### 构建镜像
+```bash
+docker build -t spyglass-frontend \
+    --build-arg VITE_API_BASE_URL="http://your-backend-host:8080" .
+```
+
+#### 运行容器
+```bash
+docker run -d --name spyglass-frontend -p 8080:80 spyglass-frontend
+```
+访问: http://localhost:8080
+
+#### 使用 docker-compose
+`docker-compose.yml` 已内置：
+```bash
+VITE_API_BASE_URL=http://backend:8080 docker compose up -d --build
+```
+
+> 注意：Vite 前端在构建阶段已将 `VITE_API_BASE_URL` 编译进 bundle。要在运行时动态切换后端地址，可采用以下策略：
+> 1. 通过 Nginx 反向代理 `/api/` 到实际后端，构建时使用相对路径 `/api`。
+> 2. 构建注入占位变量，在 `index.html` 里通过运行时脚本注入 `window.__APP_CONFIG__` 并在 API client 读取（后续可扩展）。
+
+#### 常见问题
+| 问题 | 现象 | 解决 |
+|------|------|------|
+| API 404 | 前端请求 `/api/...` 报 404 | 确认构建时 `VITE_API_BASE_URL` 是否正确，或加 Nginx 反代配置。|
+| 跨域 (CORS) | 浏览器控制台提示 CORS | 后端启用 CORS 或通过同域反代 `/api`。|
+| 修改后端地址失效 | 修改 compose 环境变量无效 | 重新 build 镜像；或改用反代方案。|
+
+
 ## 8. 后续迭代计划 (Next Milestones)
 
 | 优先级 | 任务 | 说明 |
