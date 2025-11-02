@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { apiRequest } from '../api/client';
 import { HistoryPoint, AlertItem, ReviewItem, PageResponse, AsinHistoryPoint, AlertLogResponse, ReviewAlertResponse } from '../types';
@@ -7,7 +7,7 @@ import { useFetch } from '../hooks/useFetch';
 import Loading from '../components/Loading';
 import ErrorMessage from '../components/ErrorMessage';
 import ReactECharts from './ReactEChartsLazy';
-import { Radio, Tabs, Space, Select, DatePicker } from 'antd';
+import { Radio, Tabs, Space, Select, DatePicker, Card, Statistic, Row, Col, Divider } from 'antd';
 import dayjs, { Dayjs } from 'dayjs';
 import { diffWords } from 'jsdiff';
 import type { RadioChangeEvent } from 'antd/es/radio';
@@ -85,9 +85,28 @@ const AsinDetailPage: React.FC = () => {
   const bsrSeries = historyPoints.filter(p => p.bsr !== undefined);
   const inventorySeries = historyPoints.filter(p => p.inventory !== undefined);
 
+  const latest = historyPoints[historyPoints.length - 1];
+  const avgPrice = useMemo(() => {
+    const arr = priceSeries.map(p => p.price!); return arr.length ? (arr.reduce((a,b)=>a+b,0)/arr.length).toFixed(2) : '-';
+  }, [priceSeries]);
+  const avgBsr = useMemo(() => {
+    const arr = bsrSeries.map(p => p.bsr!); return arr.length ? Math.round(arr.reduce((a,b)=>a+b,0)/arr.length) : '-';
+  }, [bsrSeries]);
+  const avgInv = useMemo(() => {
+    const arr = inventorySeries.map(p => p.inventory!); return arr.length ? Math.round(arr.reduce((a,b)=>a+b,0)/arr.length) : '-';
+  }, [inventorySeries]);
+
   return (
     <div>
-      <h2>ASIN 详情 #{id}</h2>
+      <h2 style={{ marginBottom: 16 }}>ASIN 详情 #{id}</h2>
+      <Row gutter={16} style={{ marginBottom: 16 }}>
+        <Col span={6}><Card><Statistic title="当前价格" value={latest?.price ?? '-'} /></Card></Col>
+        <Col span={6}><Card><Statistic title="平均价格" value={avgPrice} /></Card></Col>
+        <Col span={6}><Card><Statistic title="当前BSR" value={latest?.bsr ?? '-'} /></Card></Col>
+        <Col span={6}><Card><Statistic title="平均BSR" value={avgBsr} /></Card></Col>
+        <Col span={6}><Card style={{ marginTop:16 }}><Statistic title="当前库存" value={latest?.inventory ?? '-'} /></Card></Col>
+        <Col span={6}><Card style={{ marginTop:16 }}><Statistic title="平均库存" value={avgInv} /></Card></Col>
+      </Row>
   <Radio.Group options={ranges} value={range} onChange={(e: RadioChangeEvent) => setRange(e.target.value)} style={{ marginBottom: 16 }} />
       <div style={{ display: 'grid', gap: 24 }}>
         <ReactECharts option={{
