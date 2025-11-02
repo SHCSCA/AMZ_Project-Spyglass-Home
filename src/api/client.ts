@@ -3,6 +3,7 @@
  */
 export const apiBase = import.meta.env.VITE_API_BASE_URL as string;
 
+import { DEFAULT_API_TIMEOUT_MS, DEFAULT_API_RETRY, DEFAULT_API_CACHE_TTL_MS } from '../constants/config';
 /**
  * 请求选项扩展：支持跳过错误提示、重试次数、超时毫秒、是否使用缓存。
  */
@@ -18,9 +19,9 @@ interface RequestOptions extends RequestInit {
 const cache = new Map<string, { expiry: number; data: any }>();
 
 // 默认 TTL 及网络健壮性参数，可后续抽取到 config 常量
-const DEFAULT_TTL = 30_000; // 30s
-const DEFAULT_TIMEOUT = 10_000; // 10s
-const DEFAULT_RETRY = 2;
+const DEFAULT_TTL = DEFAULT_API_CACHE_TTL_MS;
+const DEFAULT_TIMEOUT = DEFAULT_API_TIMEOUT_MS;
+const DEFAULT_RETRY = DEFAULT_API_RETRY;
 
 import { logInfo, logWarn, logError } from '../logger';
 

@@ -3,7 +3,7 @@ set -euo pipefail
 
 # 一键构建并启动前端容器（编排模式）
 # 可用环境变量：
-#   VITE_API_BASE_URL  后端 API 地址 (默认 https://shcamz.xyz:8081)
+#   VITE_API_BASE_URL  后端 API 地址 (默认 http://shcamz.xyz:8081)
 #   FRONTEND_PORT      宿主机端口 (默认 8082)
 #   APP_VERSION        镜像标签后缀 (默认 latest)
 #   APP_BUILD_TIME     构建时间戳 (默认 当前时间)

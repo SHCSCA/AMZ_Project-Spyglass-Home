@@ -1,15 +1,210 @@
-# 产品需求文档 (PRD): 亚马逊竞品情报系统 V2.0 - 前端界面 (UI)
+<div align="center">
 
-| 文档版本 | V2.0 (UI) |
-| :--- | :--- |
-| **项目名称** | 亚马逊竞品情报系统 (Project Spyglass) - 前端 |
-| **创建日期** | 2025年11月01日 |
-| **修订说明** | **V2.0: ** 基于后端 V2.0 PRD 制定。定义了消费 API 所需的核心用户界面，包括仪表盘、详情页图表和 V2.0 新增的告警/差评模块。 |
-| **目标** | 提供一个快速、响应式、数据驱动的Web界面，将后端API数据转化为运营者可操作的视觉情报。 |
+![CI](https://github.com/SHCSCA/AMZ_Project-Spyglass-Home/actions/workflows/ci.yml/badge.svg)
+
+<h1>Spyglass Frontend</h1>
+<p>亚马逊竞品情报系统前端 · React + Vite + TypeScript + Ant Design + ECharts</p>
+<p><strong>快速、稳健、可维护</strong> 的电商监控可视化界面</p>
+
+</div>
 
 ---
 
-## 1. 简介
+## 🔍 项目概览 (Overview)
+本仓库仅包含前端 UI，不包括后端实现。后端接口已部署在外部服务器，通过环境变量 `VITE_API_BASE_URL` 指定（推荐使用相对路径 `/api` 并配合反向代理）。
+
+完整的产品需求文档 (PRD) 已迁移至：`docs/PRD.md`。
+
+**核心用户旅程：**
+1. 登录即知：默认页显示全局告警。
+2. 大盘总览：仪表盘查看所有监控 ASIN 最新状态。
+3. 深度分析：详情页查看历史图表、告警与差评。
+4. 管理监控：仪表盘增删改 ASIN 配置。
+
+---
+
+## 🧱 技术栈 (Stack)
+| 层面 | 选型 |
+|------|------|
+| 框架 | React 18 + Vite |
+| 语言 | TypeScript 5 |
+| UI | Ant Design 5 |
+| 图表 | ECharts 5 (按需懒加载封装) |
+| 构建 | Vite / ESBuild |
+| 测试 | Vitest + Testing Library |
+| 提交规范 | commitlint + husky + lint-staged |
+| 格式化 | Prettier + ESLint (@typescript-eslint) |
+| 日志 | 简易内存日志 + LogViewer |
+
+---
+
+## 🚀 快速开始 (Quick Start)
+### 环境准备
+Node.js >= 18 （使用 `.nvmrc` 保持一致）
+
+### 安装依赖
+```bash
+npm install
+```
+### 配置后端地址
+```bash
+cp .env.example .env
+echo "VITE_API_BASE_URL=/api" >> .env
+```
+### 本地开发
+```bash
+npm run dev
+```
+访问: http://localhost:8082 （依赖 `docker-compose.yml` 中的端口映射或修改本地端口策略）
+
+### 构建/预览
+```bash
+npm run build
+npm run preview
+```
+
+### 一键 Docker 脚本
+```bash
+./scripts/docker-up.sh
+```
+自定义：
+```bash
+VITE_API_BASE_URL=/api FRONTEND_PORT=9090 ./scripts/docker-up.sh
+```
+
+---
+
+## 📁 目录结构 (Structure)
+```
+src/
+    api/            # API 客户端 (重试/超时/缓存/日志)
+    components/     # 通用展示组件 (Loading / ErrorMessage / Sidebar / LogViewer)
+    hooks/          # 数据获取抽象 (useFetch / usePagedFetch)
+    pages/          # 页面级组件 (Alerts / Dashboard / AsinDetail / ReactEChartsLazy)
+    constants/      # 全局默认配置 (超时/重试/TTL/Swagger URL)
+    types/          # TypeScript 接口与类型
+    utils/          # 类型守卫等工具
+```
+
+---
+
+## 🔌 API 客户端设计 (API Client)
+`src/api/client.ts` 提供统一请求：
+- 自动缓存：默认缓存 GET 30s，可通过 `cacheTtlMs` 调整
+- 重试策略：默认 2 次，仅对 5xx 与网络异常；指数退避 `200ms * 2^(attempt-1)`
+- 超时控制：默认 10s，AbortController 取消请求
+- 结构化日志：`api_ok` / `api_error` / `network_error` / `api_cache_hit` 方便在 `LogViewer` 中观察
+- 可扩展：未来支持 ETag / SW / IndexedDB 持久化
+
+常量集中：`src/constants/config.ts` (`DEFAULT_API_TIMEOUT_MS`, `DEFAULT_API_RETRY`, `DEFAULT_API_CACHE_TTL_MS`)，避免魔法数字散落。
+
+---
+
+## 🧪 测试策略 (Testing)
+`vitest` + `@testing-library/react`：
+- 逻辑单测：API 重试 / 超时 / 类型守卫
+- 组件基础渲染：AlertsPage / DashboardPage / AsinDetailPage
+- 后续扩展：使用 MSW 模拟分页与错误；Diff 组件快照
+
+运行：
+```bash
+npm run test
+```
+
+---
+
+## 🛠 工程脚本 (Scripts)
+| 命令 | 作用 |
+|------|------|
+| dev | Vite 开发服务器 |
+| build | 类型检查 + 生产构建 |
+| preview | 预览生产构建 |
+| lint | ESLint 检查 |
+| type-check | TypeScript 无输出检查 |
+| format / format:check | Prettier 格式化 / 校验 |
+| test / test:watch | 单测运行 / 监听模式 |
+| analyze | 构建分析（未来可结合可视化报告） |
+| prepare | 安装 husky (自动执行) |
+
+Husky 钩子：
+- `pre-commit`: lint-staged 执行 ESLint + Prettier
+- `commit-msg`: commitlint 校验 Conventional Commits 格式
+
+---
+
+## 🧾 提交与规范 (Conventions)
+遵循 Conventional Commits：`feat|fix|chore|docs|refactor|test|perf|style`。
+格式示例：
+```text
+feat: 支持 ASIN 告警分页过滤
+fix: 修复超时后未清理计时器的问题
+```
+
+代码风格：统一 Prettier；避免魔法数字；新增常量放 `constants/` 或页面局部 `const`。
+
+---
+
+## 📊 日志与观测 (Logging & Observability)
+`src/logger.ts` 提供：`logInfo/logWarn/logError` + 内存环形数组（上限 500）。
+`LogViewer` 抽屉组件展示：时间戳 + 级别 + 消息 + 上下文。可扩展：导出 JSON / 上传后端。
+
+可行后续：接入浏览器 Performance API 上报首屏/渲染耗时；接入 OpenTelemetry Web SDK。
+
+---
+
+## ⚙️ 运行时配置 (Runtime Config)
+构建期注入：`VITE_API_BASE_URL`。生产推荐使用相对路径 `/api` + Nginx 反代。
+未来可扩展：
+- `window.__APP_CONFIG__` 运行时覆盖
+- 拉取 `/config.json` 动态调整重试/超时
+
+---
+
+## 🔐 安全与稳健性 (Security & Resilience)
+- 统一错误处理组件 `ErrorMessage`
+- API 层避免直接暴露后端错误结构，做基础封装与兜底
+- 计划：输入校验（表单层级）、XSS 内容过滤（对用户生成内容做转义）、CSP 头配置（由部署层添加）
+
+---
+
+## 🩺 故障排查 (Troubleshooting)
+| 现象 | 可能原因 | 建议操作 |
+|------|----------|----------|
+| 请求全部失败 | `VITE_API_BASE_URL` 配置错误或后端不可达 | 使用 `scripts/check-api.sh` 验证；检查网络或反代配置 |
+| CORS 提示 | 跨域直接访问后端 | 使用同域 `/api` 反代或后端开启 CORS |
+| SSL 协议错误 | 使用 https 但后端仅 http | 改为 http 或配置证书反代 |
+| 图表空白 | 响应字段缺失或改名 | 检查后端字段映射，console.log 调试点位 |
+| 重试仍失败 | 网络持续异常或服务端 5xx | 增大重试次数或联系后端排查 |
+
+后端接口文档：`http://shcamz.xyz:8081/swagger-ui/index.html`
+
+健康检查脚本：
+```bash
+./scripts/check-api.sh http://shcamz.xyz:8081/api
+```
+
+---
+
+## 📈 Roadmap (Next)
+| 优先级 | 任务 | 描述 |
+|--------|------|------|
+| P1 | 缓存策略升级 | 基于 ETag / 条件请求 减少带宽 |
+| P1 | MSW 集成 | 更全面的 API 行为测试 |
+| P1 | 图表性能优化 | 大数据点时降采样/虚拟化 |
+| P2 | 日志持久化 | 上传后端或 IndexedDB 保留 |
+| P2 | 运行时配置拉取 | 支持动态调整缓存/重试策略 |
+| P2 | 安全加固 | CSP / X-XSS-Protection / 依赖版本审计 |
+| P3 | 国际化 (i18n) | 多语言 UI 翻译层 |
+
+---
+
+## 📜 License
+内部项目（未开源），如需开放请补充 LICENSE 文件与条款。
+
+---
+
+> 若需查看完整 PRD，请前往 `docs/PRD.md`。
+
 
 ### 1.1. 目标
 本项目仅包含前端 (UI)，不包含后端代码。它消费外部部署的 `spyglass-backend` V2.0 提供的 RESTful API，实现 PRD 中定义的所有 P0 和 P1 级用户故事。后端仓库或接口地址需通过环境变量 `VITE_API_BASE_URL` 指定。
@@ -326,6 +521,18 @@ VITE_API_BASE_URL=/api FRONTEND_PORT=9090 ./scripts/docker-up.sh
 | API 404 | 前端请求 `/api/...` 报 404 | 确认构建时 `VITE_API_BASE_URL` 是否正确，或加 Nginx 反代配置。|
 | 跨域 (CORS) | 浏览器控制台提示 CORS | 后端启用 CORS 或通过同域反代 `/api`。|
 | 修改后端地址失效 | 修改 compose 环境变量无效 | 重新 build 镜像；或改用反代方案。|
+
+### 7.8 后端接口文档
+后端 Swagger 地址：`http://shcamz.xyz:8081/swagger-ui/index.html`
+可在浏览器打开查看最新接口定义，前端依赖分页与字段需与其保持一致。
+
+### 7.9 后端健康检查脚本
+提供脚本 `scripts/check-api.sh` 快速验证关键端点可访问：
+```bash
+./scripts/check-api.sh http://shcamz.xyz:8081/api
+```
+输出状态码，若非 200/404 将标记为 FAIL。
+
 
 ### HTTP / HTTPS 与 SSL 协议错误说明
 
