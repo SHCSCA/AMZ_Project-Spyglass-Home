@@ -1,5 +1,3 @@
 #!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
-
-echo "[husky] 运行 pre-commit 钩子: lint-staged 检查与格式化"
-lint-staged || { echo "[husky] lint-staged 失败，阻止提交"; exit 1; }
+echo "[husky] 运行 pre-commit: lint-staged"
+lint-staged || { echo "[husky] lint-staged 失败"; exit 1; }
