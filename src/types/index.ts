@@ -16,6 +16,9 @@ export interface AsinResponse {
   site: string;
   nickname?: string;
   inventoryThreshold?: number;
+  brand?: string;
+  groupId?: number;
+  groupName?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -69,11 +72,16 @@ export interface AsinHistoryPoint {
   asinId?: number;
   price?: number; // Buybox 价格
   bsr?: number;
+  bsrCategory?: string;
+  bsrSubcategory?: string;
+  bsrSubcategoryRank?: number;
   inventory?: number;
   imageMd5?: string;
   aplusMd5?: string;
   totalReviews?: number;
   avgRating?: number;
+  title?: string;
+  bulletPoints?: string;
   snapshotAt: string; // ISO 时间戳
 }
 

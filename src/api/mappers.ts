@@ -29,6 +29,7 @@ export function mapReview(r: ReviewAlertResponse): ReviewItem {
 export function mapAsin(a: AsinResponse): AsinItem {
   return {
     ...a,
+    // 可在此聚合最新快照字段（后端未来若直接提供可删除）
   };
 }
 
@@ -38,5 +39,6 @@ export function mapHistoryPoint(h: AsinHistoryPoint): HistoryPoint {
     price: h.price,
     bsr: h.bsr,
     inventory: h.inventory,
+    // 其他扩展字段（如分类、评分等）保留在原始 AsinHistoryPoint，不进入精简点位结构
   };
 }

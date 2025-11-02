@@ -148,6 +148,7 @@
 | ASIN 详情页统计卡片增强 | ✅ | 顶部展示当前/平均价格、BSR、库存等概览 |
 | ASIN 详情页图表交互增强 | ✅ | 折线图支持 tooltip、缩放(dataZoom)、最大/最小/最新点标记、平滑与面积渐变 |
 | 库存历史图表 F-UI-402 (P1) | ✅ | 详情页新增库存折线图 |
+| 后端字段同步 (brand/group 分组) | ✅ | 新增 brand, groupId, groupName 类型与 UI 编辑 |
 | 详情页告警 Tab F-UI-401/Alerts (P1) | ✅ | Tabs: 告警记录显示 |
 | 详情页差评 Tab F-UI-401/Reviews (P1) | ✅ | Tabs: 差评列表（1-3星过滤） |
 | 差评分页 (P1 扩展) | ✅ | 前端分页参数 page/limit 支持 |
@@ -211,6 +212,7 @@
 | 告警严重级别标签 | 根据 `severity` 渲染颜色 Tag (INFO 蓝 / WARN 橙 / ERROR 红) | 告警列表 |
 | 通用分页 Hook | `usePagedFetch` 抽象分页获取与状态管理 | `src/hooks/usePagedFetch.ts` |
 | 过滤控件测试 | 新增最小测试验证过滤控件渲染 | `AlertsPageFilters.test.tsx` |
+| 品牌/分组字段支持 | 新增 brand、groupId/groupName 字段类型与表单 | `DashboardPage` |
 
 
 ## 6. 目录结构 (Project Structure)

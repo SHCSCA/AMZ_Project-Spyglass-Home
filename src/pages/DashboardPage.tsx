@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Table, Button, Modal, Form, Input, InputNumber, Space, Popconfirm, Badge } from 'antd';
+import { Table, Button, Modal, Form, Input, InputNumber, Space, Popconfirm, Badge, Tag } from 'antd';
 import { apiRequest } from '../api/client';
 import { AsinItem, PageResponse, AsinResponse, AlertLogResponse, AlertItem } from '../types';
 import { mapAsin, mapAlertLog } from '../api';
@@ -69,7 +69,9 @@ const DashboardPage: React.FC = () => {
       }
     },
     { title: '站点', dataIndex: 'site' },
-    { title: '最新价格', dataIndex: 'lastPrice' },
+  { title: '品牌', dataIndex: 'brand' },
+  { title: '分组', dataIndex: 'groupName', render: (v: string, r: AsinItem) => v ? <Tag color="blue">{v}</Tag> : (r.groupId ? <Tag>{r.groupId}</Tag> : '-') },
+  { title: '最新价格', dataIndex: 'lastPrice' },
     { title: '最新BSR', dataIndex: 'lastBsr' },
     { title: '最新库存', dataIndex: 'lastInventory' },
     { title: '评论数', dataIndex: 'totalReviews' },
@@ -106,6 +108,8 @@ const DashboardPage: React.FC = () => {
           <Form.Item name="site" label="站点" rules={[{ required: true }]}> <Input /> </Form.Item>
           <Form.Item name="nickname" label="昵称"> <Input /> </Form.Item>
           <Form.Item name="inventoryThreshold" label="库存阈值"> <InputNumber style={{ width: '100%' }} /> </Form.Item>
+          <Form.Item name="brand" label="品牌"> <Input /> </Form.Item>
+          <Form.Item name="groupId" label="分组ID"> <InputNumber style={{ width: '100%' }} /> </Form.Item>
         </Form>
       </Modal>
 
@@ -114,6 +118,8 @@ const DashboardPage: React.FC = () => {
           <Form.Item name="site" label="站点" rules={[{ required: true }]}> <Input /> </Form.Item>
           <Form.Item name="nickname" label="昵称"> <Input /> </Form.Item>
           <Form.Item name="inventoryThreshold" label="库存阈值"> <InputNumber style={{ width: '100%' }} /> </Form.Item>
+          <Form.Item name="brand" label="品牌"> <Input /> </Form.Item>
+          <Form.Item name="groupId" label="分组ID"> <InputNumber style={{ width: '100%' }} /> </Form.Item>
         </Form>
       </Modal>
     </div>
