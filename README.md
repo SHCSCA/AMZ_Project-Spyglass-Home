@@ -12,7 +12,7 @@
 ## 1. 简介
 
 ### 1.1. 目标
-本项目的前端 (UI) 旨在消费 `spyglass-backend` V2.0 提供的 RESTful API，实现PRD中定义的所有P0和P1级用户故事。
+本项目仅包含前端 (UI)，不包含后端代码。它消费外部部署的 `spyglass-backend` V2.0 提供的 RESTful API，实现 PRD 中定义的所有 P0 和 P1 级用户故事。后端仓库或接口地址需通过环境变量 `VITE_API_BASE_URL` 指定。
 
 **核心用户旅程：**
 1.  **登录即知：** 用户打开界面，首先看到“全局告警中心”，立刻知道哪些产品发生了什么事。
@@ -148,7 +148,7 @@
 | ASIN 详情页统计卡片增强 | ✅ | 顶部展示当前/平均价格、BSR、库存等概览 |
 | ASIN 详情页图表交互增强 | ✅ | 折线图支持 tooltip、缩放(dataZoom)、最大/最小/最新点标记、平滑与面积渐变 |
 | 库存历史图表 F-UI-402 (P1) | ✅ | 详情页新增库存折线图 |
-| 后端字段同步 (brand/group 分组) | ✅ | 新增 brand, groupId, groupName 类型与 UI 编辑 |
+| 后端字段支持 (brand/group 分组) | ✅ | 基于后端接口字段新增 brand, groupId, groupName 类型与 UI 编辑 |
 | 详情页告警 Tab F-UI-401/Alerts (P1) | ✅ | Tabs: 告警记录显示 |
 | 详情页差评 Tab F-UI-401/Reviews (P1) | ✅ | Tabs: 差评列表（1-3星过滤） |
 | 差评分页 (P1 扩展) | ✅ | 前端分页参数 page/limit 支持 |
@@ -160,9 +160,9 @@
 
 尚未实现（后续迭代）：告警聚合标识、已读/清除告警、Diff 对比、性能进一步优化等 P1 / V2.1 需求。
 
-### 5.1 后端真实接口对齐 (2025-11)
+### 5.1 后端接口契约说明（本仓库不包含后端实现）
 
-前端已重构以匹配后端统一分页响应 `PageResponse<T>`：
+前端依赖外部后端分页响应格式 `PageResponse<T>`：
 
 ```
 {
@@ -195,7 +195,7 @@
 | ReviewAlertResponse.reviewText | ReviewItem.text | 评论正文 |
 | AsinHistoryPoint.snapshotAt | HistoryPoint.timestamp | 用于图表 X 轴 |
 
-下线/暂未实现端点说明：
+暂未实现的后端端点（前端做降级处理）：
 
 | 原假设 | 后端状态 | 当前处理 |
 |--------|----------|----------|
@@ -420,10 +420,78 @@ server {
 包含基础用例：
 - apiClient 错误与成功路径。
 - DashboardPage / AlertsPage 渲染不报错。
+- apiClientRetry 重试与超时逻辑。
+- typeGuards 基本类型守卫。
 后续建议：
 - 为 Diff 组件增加快照测试。
 - 使用 MSW mock 后端多场景（分页、错误码）。
 
 ---
+
+## 14. 工程规范 (Engineering Conventions)
+
+### 14.1 代码风格
+* 使用 Prettier 统一格式：`npm run format` 自动修复；CI 可用 `format:check`。
+* 缩进 2 空格，行宽 100，单引号，尾随逗号（ES5）。
+* 尽量避免魔法数字，抽取到常量或配置 (`src/constants` 未来扩展)。
+
+### 14.2 Lint & Type Check
+* `npm run lint` 针对 `src` 下 TS/TSX 文件运行 ESLint。
+* `npm run type-check` 使用 TypeScript 做静态类型校验，不输出构建产物。
+* 新增类型守卫放在 `src/utils/typeGuards.ts`，为复杂数据结构提供边界确认。
+
+### 14.3 提交规范 (Commit Message)
+采用 Conventional Commits：
+```
+feat: 新功能
+fix: 修复问题
+chore: 构建/依赖/工具
+docs: 文档更新
+refactor: 代码重构不改变行为
+test: 测试相关
+perf: 性能优化
+style: 代码风格（不影响逻辑）
+```
+后续可接入 commitlint + husky 拦截 commit-msg（已提供配置文件，需安装 husky 钩子）。
+
+### 14.4 测试策略
+* 单元测试只关注纯逻辑：重试、超时、类型守卫。
+* 组件测试关注渲染与简单交互，不做复杂快照。
+* 后续可引入 MSW 模拟 API 行为（错误码、分页边界）。
+
+### 14.5 API 客户端健壮性
+* 自动重试：默认 2 次，仅针对 5xx 与网络错误。
+* 超时控制：默认 10 秒，可通过 `timeoutMs` 自定义。
+* 指数退避：200ms * 2^(attempt-1)。
+* 缓存：GET 默认缓存 30 秒，可通过 `cacheTtlMs` 覆盖。
+
+### 14.6 环境与版本
+* Node 版本通过 `.nvmrc` 指定为 18，可通过 `nvm use` 切换。
+* API 基地址通过 `VITE_API_BASE_URL` 注入，构建时确定，不建议在运行时修改。
+
+### 14.7 日志与调试
+* `logger.ts` 保留最近 500 条日志，支持分级 (info/warn/error)。
+* 后续可扩展下载日志或上传到后端。
+
+### 14.8 构建脚本说明
+| 脚本 | 作用 |
+|------|------|
+| dev | 启动开发服务器 (Vite) |
+| build | 类型检查 + 生产构建 |
+| build:prod | 同 build（预留未来差异化构建） |
+| preview | 本地预览生产构建 |
+| lint | ESLint 检查 |
+| type-check | TS 类型检查（不输出 JS） |
+| format | Prettier 自动格式化 |
+| format:check | Prettier 校验不修改 |
+| test | Vitest 一次性运行所有测试 |
+| test:watch | Vitest 监听模式 |
+| analyze | 构建并输出分析信息（可用于体积分析） |
+
+### 14.9 后续可扩展
+* 引入 husky 钩子：`npm run prepare` 后添加 `pre-commit`（运行 lint-staged），`commit-msg`（运行 commitlint）。
+* 增加 Cypress 端到端测试。
+* 使用 MSW/Playwright 做更真实的交互测试。
+
 
 以下为原始 PRD 内容：

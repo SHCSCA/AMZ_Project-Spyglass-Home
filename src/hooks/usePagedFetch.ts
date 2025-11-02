@@ -2,13 +2,15 @@ import { useState } from 'react';
 import { useFetch } from './useFetch';
 
 /**
- * 通用分页数据获取 Hook
- * @param build (page0Based:number) => Promise<PageResponse<T>> 的函数
- * @param deps 触发重新加载的依赖（除 page 外）
+ * 分页数据获取 Hook：
+ * - 统一维护当前页 (UI 1-based) 与 pageSize
+ * - 内部自动将页码转换为后端 0-based
+ * - 返回 items/total 便于直接解构使用
  */
 export function usePagedFetch<T>(build: (page: number) => Promise<any>, deps: any[], pageSize = 20) {
-  const [page, setPage] = useState(1); // UI 1-based
+  const [page, setPage] = useState(1); // UI 使用 1 起始更符合直觉
   const { data, loading, error, reload } = useFetch(() => build(page - 1), [page, ...deps]);
+
   return {
     page,
     setPage,
