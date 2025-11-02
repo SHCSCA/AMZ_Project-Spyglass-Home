@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import type { EChartsOption } from 'echarts';
 import { useParams } from 'react-router-dom';
 import { apiRequest } from '../api/client';
 import { HistoryPoint, AlertItem, ReviewItem, PageResponse, AsinHistoryPoint, AlertLogResponse, ReviewAlertResponse } from '../types';
@@ -96,6 +97,49 @@ const AsinDetailPage: React.FC = () => {
     const arr = inventorySeries.map(p => p.inventory!); return arr.length ? Math.round(arr.reduce((a,b)=>a+b,0)/arr.length) : '-';
   }, [inventorySeries]);
 
+  const buildLineOption = (title: string, points: { timestamp: string; value: number | undefined }[], valueName: string): EChartsOption => {
+    const data = points.map(p => (p.value == null ? null : p.value));
+    const latestIndex = data.length - 1;
+    const latestValue = latestIndex >= 0 ? data[latestIndex] : null;
+    const latestTimestamp = latestIndex >= 0 ? points[latestIndex].timestamp : '';
+    const markPointData: any[] = [
+      { type: 'max', name: '最大值' },
+      { type: 'min', name: '最小值' }
+    ];
+    if (latestValue != null) {
+      markPointData.push({ name: '最新', coord: [latestTimestamp, latestValue], value: latestValue });
+    }
+    return {
+      title: { text: title },
+      tooltip: {
+        trigger: 'axis',
+        formatter: (params: any) => {
+          // params 可能是数组（多序列），这里只取第一条
+          const arr = Array.isArray(params) ? params : [params];
+          return arr.map(p => `${p.marker}${p.seriesName}: ${p.value ?? '-'}`).join('<br/>');
+        }
+      },
+      grid: { left: 50, right: 20, top: 50, bottom: 60 },
+      xAxis: { type: 'category' as const, data: points.map(p => p.timestamp) },
+      yAxis: { type: 'value' as const, name: valueName, scale: true },
+      dataZoom: [
+        { type: 'inside', throttle: 50 },
+        { type: 'slider', height: 30 }
+      ],
+      legend: { show: true },
+      series: [{
+        name: valueName,
+        type: 'line',
+        smooth: true,
+        showSymbol: false,
+        areaStyle: { opacity: 0.15 },
+        data,
+        markPoint: data.length ? { symbol: 'circle', data: markPointData } : undefined,
+        lineStyle: { width: 2 },
+      }]
+    };
+  };
+
   return (
     <div>
       <h2 style={{ marginBottom: 16 }}>ASIN 详情 #{id}</h2>
@@ -109,24 +153,9 @@ const AsinDetailPage: React.FC = () => {
       </Row>
   <Radio.Group options={ranges} value={range} onChange={(e: RadioChangeEvent) => setRange(e.target.value)} style={{ marginBottom: 16 }} />
       <div style={{ display: 'grid', gap: 24 }}>
-        <ReactECharts option={{
-          title: { text: '价格趋势' },
-          xAxis: { type: 'category', data: priceSeries.map(p => p.timestamp) },
-          yAxis: { type: 'value' },
-          series: [{ type: 'line', data: priceSeries.map(p => p.price) }]
-        }} />
-        <ReactECharts option={{
-          title: { text: 'BSR趋势' },
-          xAxis: { type: 'category', data: bsrSeries.map(p => p.timestamp) },
-          yAxis: { type: 'value' },
-          series: [{ type: 'line', data: bsrSeries.map(p => p.bsr) }]
-        }} />
-        <ReactECharts option={{
-          title: { text: '库存趋势' },
-          xAxis: { type: 'category', data: inventorySeries.map(p => p.timestamp) },
-          yAxis: { type: 'value' },
-          series: [{ type: 'line', data: inventorySeries.map(p => p.inventory) }]
-        }} />
+        <ReactECharts option={buildLineOption('价格趋势', priceSeries.map(p => ({ timestamp: p.timestamp, value: p.price })), '价格')} />
+        <ReactECharts option={buildLineOption('BSR趋势', bsrSeries.map(p => ({ timestamp: p.timestamp, value: p.bsr })), 'BSR')} />
+        <ReactECharts option={buildLineOption('库存趋势', inventorySeries.map(p => ({ timestamp: p.timestamp, value: p.inventory })), '库存')} />
       </div>
       <div style={{ marginTop: 32 }}>
         <Tabs
