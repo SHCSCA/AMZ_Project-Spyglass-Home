@@ -5,6 +5,6 @@ coverage/
 .env
 .env.*
 *.log
-package-lock.json
+
 
 
