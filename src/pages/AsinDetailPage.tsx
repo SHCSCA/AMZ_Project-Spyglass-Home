@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { logInfo, logError } from '../logger';
 import type { EChartsOption } from 'echarts';
 import { useParams } from 'react-router-dom';
 import { apiRequest } from '../api/client';
@@ -81,20 +82,48 @@ const AsinDetailPage: React.FC = () => {
   if (loading) return <Loading />;
   if (error) return <ErrorMessage error={error} />;
 
-  const historyPoints: HistoryPoint[] = (historyResp?.items || []).map(mapHistoryPoint);
+  const historyPoints: HistoryPoint[] = (() => {
+    try {
+      const pts = (historyResp?.items || []).map(mapHistoryPoint);
+      logInfo('asin_detail_history_loaded', { id, count: pts.length, range });
+      return pts;
+    } catch (e) {
+      logError('asin_detail_history_map_failed', { id, error: String(e) });
+      return [];
+    }
+  })();
   const priceSeries = historyPoints.filter(p => p.price !== undefined);
   const bsrSeries = historyPoints.filter(p => p.bsr !== undefined);
   const inventorySeries = historyPoints.filter(p => p.inventory !== undefined);
 
   const latest = historyPoints[historyPoints.length - 1];
   const avgPrice = useMemo(() => {
-    const arr = priceSeries.map(p => p.price!); return arr.length ? (arr.reduce((a,b)=>a+b,0)/arr.length).toFixed(2) : '-';
+    try {
+      const arr = priceSeries.filter(p => typeof p.price === 'number').map(p => p.price!);
+      const v = arr.length ? (arr.reduce((a,b)=>a+b,0)/arr.length).toFixed(2) : '-';
+      return v;
+    } catch (e) {
+      logError('asin_detail_avg_price_failed', { error: String(e) });
+      return '-';
+    }
   }, [priceSeries]);
   const avgBsr = useMemo(() => {
-    const arr = bsrSeries.map(p => p.bsr!); return arr.length ? Math.round(arr.reduce((a,b)=>a+b,0)/arr.length) : '-';
+    try {
+      const arr = bsrSeries.filter(p => typeof p.bsr === 'number').map(p => p.bsr!);
+      return arr.length ? Math.round(arr.reduce((a,b)=>a+b,0)/arr.length) : '-';
+    } catch (e) {
+      logError('asin_detail_avg_bsr_failed', { error: String(e) });
+      return '-';
+    }
   }, [bsrSeries]);
   const avgInv = useMemo(() => {
-    const arr = inventorySeries.map(p => p.inventory!); return arr.length ? Math.round(arr.reduce((a,b)=>a+b,0)/arr.length) : '-';
+    try {
+      const arr = inventorySeries.filter(p => typeof p.inventory === 'number').map(p => p.inventory!);
+      return arr.length ? Math.round(arr.reduce((a,b)=>a+b,0)/arr.length) : '-';
+    } catch (e) {
+      logError('asin_detail_avg_inventory_failed', { error: String(e) });
+      return '-';
+    }
   }, [inventorySeries]);
 
   const buildLineOption = (title: string, points: { timestamp: string; value: number | undefined }[], valueName: string): EChartsOption => {
@@ -109,7 +138,8 @@ const AsinDetailPage: React.FC = () => {
     if (latestValue != null) {
       markPointData.push({ name: '最新', coord: [latestTimestamp, latestValue], value: latestValue });
     }
-    return {
+    try {
+      const option: EChartsOption = {
       title: { text: title },
       tooltip: {
         trigger: 'axis',
@@ -137,7 +167,12 @@ const AsinDetailPage: React.FC = () => {
         markPoint: data.length ? { symbol: 'circle', data: markPointData } : undefined,
         lineStyle: { width: 2 },
       }]
-    };
+      };
+      return option;
+    } catch (e) {
+      logError('asin_detail_chart_option_failed', { title, error: String(e) });
+      return { title: { text: title } } as EChartsOption;
+    }
   };
 
   return (
