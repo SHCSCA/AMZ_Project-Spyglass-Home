@@ -126,6 +126,7 @@ const AsinDetailPage: React.FC = () => {
     }
   }, [inventorySeries]);
 
+  const debugDisableCharts = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('debugCharts');
   const buildLineOption = (title: string, points: { timestamp: string; value: number | undefined }[], valueName: string): EChartsOption => {
     const data = points.map(p => (p.value == null ? null : p.value));
     const latestIndex = data.length - 1;
@@ -168,6 +169,7 @@ const AsinDetailPage: React.FC = () => {
         lineStyle: { width: 2 },
       }]
       };
+      logInfo('chart_option_built', { title, points: points.length, latestValue, debugDisableCharts });
       return option;
     } catch (e) {
       logError('asin_detail_chart_option_failed', { title, error: String(e) });
@@ -188,9 +190,9 @@ const AsinDetailPage: React.FC = () => {
       </Row>
   <Radio.Group options={ranges} value={range} onChange={(e: RadioChangeEvent) => setRange(e.target.value)} style={{ marginBottom: 16 }} />
       <div style={{ display: 'grid', gap: 24 }}>
-        <ReactECharts option={buildLineOption('价格趋势', priceSeries.map(p => ({ timestamp: p.timestamp, value: p.price })), '价格')} />
-        <ReactECharts option={buildLineOption('BSR趋势', bsrSeries.map(p => ({ timestamp: p.timestamp, value: p.bsr })), 'BSR')} />
-        <ReactECharts option={buildLineOption('库存趋势', inventorySeries.map(p => ({ timestamp: p.timestamp, value: p.inventory })), '库存')} />
+        {debugDisableCharts ? <div>图表已禁用 (debugCharts)</div> : <ReactECharts option={buildLineOption('价格趋势', priceSeries.map(p => ({ timestamp: p.timestamp, value: p.price })), '价格')} />}
+        {debugDisableCharts ? <div>图表已禁用 (debugCharts)</div> : <ReactECharts option={buildLineOption('BSR趋势', bsrSeries.map(p => ({ timestamp: p.timestamp, value: p.bsr })), 'BSR')} />}
+        {debugDisableCharts ? <div>图表已禁用 (debugCharts)</div> : <ReactECharts option={buildLineOption('库存趋势', inventorySeries.map(p => ({ timestamp: p.timestamp, value: p.inventory })), '库存')} />}
       </div>
       <div style={{ marginTop: 32 }}>
         <Tabs
