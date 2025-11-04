@@ -111,7 +111,7 @@ const AsinDetailPage: React.FC = () => {
   if (loading) return <Loading />;
   if (error) return <ErrorMessage error={error} />;
 
-  const historyPoints: HistoryPoint[] = (() => {
+  const historyPoints: HistoryPoint[] = useMemo(() => {
     try {
       const pts = (historyResp?.items || []).map(mapHistoryPoint);
       logInfo('asin_detail_history_loaded', { id, count: pts.length, range });
@@ -120,10 +120,20 @@ const AsinDetailPage: React.FC = () => {
       logError('asin_detail_history_map_failed', { id, error: String(e) });
       return [];
     }
-  })();
-  const priceSeries = historyPoints.filter((p) => p.price !== undefined);
-  const bsrSeries = historyPoints.filter((p) => p.bsr !== undefined);
-  const inventorySeries = historyPoints.filter((p) => p.inventory !== undefined);
+  }, [historyResp, id, range]);
+
+  const priceSeries = useMemo(
+    () => historyPoints.filter((p) => p.price !== undefined),
+    [historyPoints]
+  );
+  const bsrSeries = useMemo(
+    () => historyPoints.filter((p) => p.bsr !== undefined),
+    [historyPoints]
+  );
+  const inventorySeries = useMemo(
+    () => historyPoints.filter((p) => p.inventory !== undefined),
+    [historyPoints]
+  );
 
   const latest = historyPoints[historyPoints.length - 1];
   const avgPrice = useMemo(() => {
