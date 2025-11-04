@@ -3,7 +3,7 @@ set -euo pipefail
 
 # 一键构建并启动前端容器（编排模式）
 # 可用环境变量：
-#   VITE_API_BASE_URL  后端 API 地址 (默认 /api - 通过nginx反向代理)
+#   VITE_API_BASE_URL  后端 API 地址 (默认 http://shcamz.xyz:8081 - 直连模式)
 #   FRONTEND_PORT      宿主机端口 (默认 8082)
 #   APP_VERSION        镜像标签后缀 (默认 latest)
 #   APP_BUILD_TIME     构建时间戳 (默认 当前时间)
@@ -20,7 +20,7 @@ if [[ "${1:-}" == "--help" ]]; then
   --rebuild    强制重新构建镜像
 
 可用环境变量:
-  VITE_API_BASE_URL   后端 API 地址 (默认 /api)
+  VITE_API_BASE_URL   后端 API 地址 (默认 http://shcamz.xyz:8081)
   FRONTEND_PORT       宿主机端口 (默认 8082)
   APP_VERSION         镜像标签 (默认 latest)
   APP_BUILD_TIME      构建时间戳 (默认 当前时间)
@@ -30,8 +30,8 @@ if [[ "${1:-}" == "--help" ]]; then
   # 使用默认配置启动
   ./scripts/docker-up.sh
 
-  # 使用外部后端地址
-  VITE_API_BASE_URL=http://shcamz.xyz:8081 ./scripts/docker-up.sh
+  # 使用反向代理模式
+  VITE_API_BASE_URL=/api ./scripts/docker-up.sh
 
   # 修改前端端口
   FRONTEND_PORT=9090 ./scripts/docker-up.sh
@@ -45,7 +45,7 @@ fi
 ROOT_DIR="$(cd "$(dirname "$0")"/.. && pwd)"
 cd "$ROOT_DIR"
 
-: "${VITE_API_BASE_URL:=/api}"
+: "${VITE_API_BASE_URL:=http://shcamz.xyz:8081}"
 : "${FRONTEND_PORT:=8082}"
 : "${APP_VERSION:=latest}"
 : "${APP_BUILD_TIME:=$(date +%Y%m%d%H%M%S)}"

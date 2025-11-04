@@ -1,23 +1,63 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Drawer, Table, Tag } from 'antd';
 import { getLogs, LogEntry } from '../logger';
 
-interface Props { open: boolean; onClose: () => void; }
+interface Props {
+  open: boolean;
+  onClose: () => void;
+}
+
+interface VersionInfo {
+  version: string;
+  buildTime: string;
+  apiBase: string;
+}
 
 const columns = [
   { title: '时间', dataIndex: 'ts', key: 'ts', width: 180 },
-  { title: '级别', dataIndex: 'level', key: 'level', width: 80, render: (lvl: string) => <Tag color={lvl === 'error' ? 'red' : lvl === 'warn' ? 'orange' : 'blue'}>{lvl}</Tag> },
+  {
+    title: '级别',
+    dataIndex: 'level',
+    key: 'level',
+    width: 80,
+    render: (lvl: string) => (
+      <Tag color={lvl === 'error' ? 'red' : lvl === 'warn' ? 'orange' : 'blue'}>{lvl}</Tag>
+    ),
+  },
   { title: '消息', dataIndex: 'message', key: 'message', width: 160 },
-  { title: '上下文', dataIndex: 'context', key: 'context', render: (c: any) => <pre style={{ whiteSpace: 'pre-wrap', maxWidth: 400 }}>{c ? JSON.stringify(c, null, 2) : ''}</pre> }
+  {
+    title: '上下文',
+    dataIndex: 'context',
+    key: 'context',
+    render: (c: Record<string, unknown>) => (
+      <pre style={{ whiteSpace: 'pre-wrap', maxWidth: 400 }}>
+        {c ? JSON.stringify(c, null, 2) : ''}
+      </pre>
+    ),
+  },
 ];
 
 const LogViewer: React.FC<Props> = ({ open, onClose }) => {
   const [entries, setEntries] = useState<LogEntry[]>([]);
-  const [version, setVersion] = useState<any>(null);
+  const [version, setVersion] = useState<VersionInfo | null>(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
   useEffect(() => {
     if (open) {
       setEntries(getLogs());
-      fetch('/version.json').then(r => r.json()).then(setVersion).catch(() => {});
+      fetch('/version.json')
+        .then(r => r.json())
+        .then(v => {
+          if (mountedRef.current) setVersion(v);
+        })
+        .catch(() => {});
     }
   }, [open]);
 

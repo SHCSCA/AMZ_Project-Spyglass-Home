@@ -79,9 +79,18 @@ npm install
 
 ### 配置后端地址
 
+默认配置已指向生产后端 `http://shcamz.xyz:8081`，无需额外配置即可使用：
+
 ```bash
-cp .env.example .env
-echo "VITE_API_BASE_URL=/api" >> .env
+# .env 文件默认内容
+VITE_API_BASE_URL=http://shcamz.xyz:8081
+```
+
+如需使用nginx反向代理模式，可修改为：
+
+```bash
+# 修改 .env 文件
+echo "VITE_API_BASE_URL=/api" > .env
 ```
 
 ### 本地开发
@@ -104,11 +113,14 @@ npm run lint        # 代码检查
 ### Docker部署
 
 ```bash
-# 快速启动 (使用默认配置)
+# 快速启动 (默认使用 http://shcamz.xyz:8081)
 ./scripts/docker-up.sh
 
-# 自定义配置
-VITE_API_BASE_URL=/api FRONTEND_PORT=9090 ./scripts/docker-up.sh
+# 使用nginx反向代理模式
+VITE_API_BASE_URL=/api ./scripts/docker-up.sh
+
+# 自定义端口
+FRONTEND_PORT=9090 ./scripts/docker-up.sh
 
 # 禁用缓存重新构建
 ./scripts/docker-up.sh --no-cache
