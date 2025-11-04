@@ -9,6 +9,7 @@ import {
   AsinHistoryPoint,
   AlertLogResponse,
   ReviewAlertResponse,
+  AsinResponse,
 } from '../types';
 import { ensurePageResponse } from '../api/adapters';
 import { mapHistoryPoint, mapAlertLog, mapReview } from '../api';
@@ -23,19 +24,29 @@ import AsinAlertsList from '../components/AsinAlertsList';
 import NegativeReviewsList from '../components/NegativeReviewsList';
 import HistoryDataTable from '../components/HistoryDataTable';
 
+// 通过ASIN码查询获取ID
+async function fetchAsinIdByCode(asinCode: string): Promise<number> {
+  const raw = await apiRequest<unknown>(`/api/asin?asin=${asinCode}&page=0&size=1`);
+  const pageResp = ensurePageResponse<AsinResponse>(raw, 0, 1);
+  if (!pageResp.items || pageResp.items.length === 0) {
+    throw new Error(`ASIN ${asinCode} 未找到`);
+  }
+  return pageResp.items[0].id;
+}
+
 async function fetchHistory(
-  asin: string,
+  id: number,
   range: string,
   page: number,
   size: number
 ): Promise<PageResponse<AsinHistoryPoint>> {
   const raw = await apiRequest<unknown>(
-    `/api/asin/by-code/${asin}/history?range=${range}&page=${page}&size=${size}`
+    `/api/asin/${id}/history?range=${range}&page=${page}&size=${size}`
   );
   return ensurePageResponse<AsinHistoryPoint>(raw, page, size);
 }
 async function fetchAsinAlerts(
-  asin: string,
+  id: number,
   page: number,
   size: number,
   type?: string,
@@ -46,16 +57,16 @@ async function fetchAsinAlerts(
   if (type) q.set('type', type);
   if (from) q.set('from', from);
   if (to) q.set('to', to);
-  const raw = await apiRequest<unknown>(`/api/asin/by-code/${asin}/alerts?${q.toString()}`);
+  const raw = await apiRequest<unknown>(`/api/asin/${id}/alerts?${q.toString()}`);
   return ensurePageResponse<AlertLogResponse>(raw, page, size);
 }
 async function fetchNegativeReviews(
-  asin: string,
+  id: number,
   page: number,
   size: number
 ): Promise<PageResponse<ReviewAlertResponse>> {
   const raw = await apiRequest<unknown>(
-    `/api/asin/by-code/${asin}/reviews?rating=negative&page=${page}&size=${size}`
+    `/api/asin/${id}/reviews?rating=negative&page=${page}&size=${size}`
   );
   return ensurePageResponse<ReviewAlertResponse>(raw, page, size);
 }
@@ -72,14 +83,35 @@ const AsinDetailPage: React.FC = () => {
   const [range, setRange] = useState('30d');
   const [historyPage] = useState(1); // 当前未实现翻页，保留值以兼容未来扩展
   const historyPageSize = 200; // 拉较大窗口用于图表
+
+  // 第一步: 通过ASIN码获取ID
+  const {
+    data: asinId,
+    loading: loadingId,
+    error: errorId,
+  } = useFetch(() => fetchAsinIdByCode(asin!), [asin]);
+
+  // 第二步: 使用ID获取历史数据
   const {
     data: historyResp,
-    loading,
-    error,
+    loading: loadingHistory,
+    error: errorHistory,
   } = useFetch(
-    () => fetchHistory(asin!, range, historyPage - 1, historyPageSize),
-    [asin, range, historyPage]
+    () =>
+      asinId
+        ? fetchHistory(asinId, range, historyPage - 1, historyPageSize)
+        : Promise.resolve({
+            items: [],
+            total: 0,
+            page: 0,
+            size: 0,
+            totalPages: 0,
+            hasNext: false,
+            hasPrevious: false,
+          }),
+    [asinId, range, historyPage]
   );
+
   const [alertPage, setAlertPage] = useState(1);
   const alertPageSize = 20;
   const [alertType, setAlertType] = useState<string | undefined>();
@@ -91,15 +123,25 @@ const AsinDetailPage: React.FC = () => {
     error: errorAlerts,
   } = useFetch(
     () =>
-      fetchAsinAlerts(
-        asin!,
-        alertPage - 1,
-        alertPageSize,
-        alertType,
-        fromDate ? fromDate.toISOString() : undefined,
-        toDate ? toDate.toISOString() : undefined
-      ),
-    [asin, alertPage, alertType, fromDate, toDate]
+      asinId
+        ? fetchAsinAlerts(
+            asinId,
+            alertPage - 1,
+            alertPageSize,
+            alertType,
+            fromDate ? fromDate.toISOString() : undefined,
+            toDate ? toDate.toISOString() : undefined
+          )
+        : Promise.resolve({
+            items: [],
+            total: 0,
+            page: 0,
+            size: 0,
+            totalPages: 0,
+            hasNext: false,
+            hasPrevious: false,
+          }),
+    [asinId, alertPage, alertType, fromDate, toDate]
   );
   const [reviewPage, setReviewPage] = useState(1);
   const reviewPageSize = 20;
@@ -108,9 +150,24 @@ const AsinDetailPage: React.FC = () => {
     loading: loadingReviews,
     error: errorReviews,
   } = useFetch(
-    () => fetchNegativeReviews(asin!, reviewPage - 1, reviewPageSize),
-    [asin, reviewPage]
+    () =>
+      asinId
+        ? fetchNegativeReviews(asinId, reviewPage - 1, reviewPageSize)
+        : Promise.resolve({
+            items: [],
+            total: 0,
+            page: 0,
+            size: 0,
+            totalPages: 0,
+            hasNext: false,
+            hasPrevious: false,
+          }),
+    [asinId, reviewPage]
   );
+
+  // 合并loading和error状态
+  const loading = loadingId || (asinId != null && loadingHistory);
+  const error = errorId || errorHistory;
 
   // ⚠️ 所有 Hooks (useMemo) 必须在条件返回之前调用
   // 否则会违反 React Hooks 规则导致 #310 错误
