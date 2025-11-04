@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Table,
   Button,
@@ -48,6 +48,15 @@ const DashboardPage: React.FC = () => {
   const [page, setPage] = useState(1);
   const [selectedGroupId, setSelectedGroupId] = useState<number>(-1); // -1表示全部
   const pageSize = 20;
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
   const { data, loading, error, reload } = useFetch(
     () => fetchAsins(page - 1, pageSize, selectedGroupId),
     [page, selectedGroupId]
@@ -60,28 +69,46 @@ const DashboardPage: React.FC = () => {
   const [form] = Form.useForm<Partial<AsinItem>>();
 
   const handleAdd = async () => {
-    const values = await form.validateFields();
-    await apiRequest('/api/asin', { method: 'POST', body: JSON.stringify(values) });
-    setOpenAdd(false);
-    form.resetFields();
-    reload();
+    try {
+      const values = await form.validateFields();
+      await apiRequest('/api/asin', { method: 'POST', body: JSON.stringify(values) });
+      if (!mountedRef.current) return;
+      setOpenAdd(false);
+      form.resetFields();
+      reload();
+    } catch (err) {
+      if (!mountedRef.current) return;
+      console.error('Add ASIN failed:', err);
+    }
   };
 
   const handleEdit = async () => {
     if (!openEdit) return;
-    const values = await form.validateFields();
-    await apiRequest(`/api/asin/${openEdit.id}/config`, {
-      method: 'PUT',
-      body: JSON.stringify(values),
-    });
-    setOpenEdit(null);
-    form.resetFields();
-    reload();
+    try {
+      const values = await form.validateFields();
+      await apiRequest(`/api/asin/${openEdit.id}/config`, {
+        method: 'PUT',
+        body: JSON.stringify(values),
+      });
+      if (!mountedRef.current) return;
+      setOpenEdit(null);
+      form.resetFields();
+      reload();
+    } catch (err) {
+      if (!mountedRef.current) return;
+      console.error('Edit ASIN failed:', err);
+    }
   };
 
   const handleDelete = async (record: AsinItem) => {
-    await apiRequest(`/api/asin/${record.id}`, { method: 'DELETE' });
-    reload();
+    try {
+      await apiRequest(`/api/asin/${record.id}`, { method: 'DELETE' });
+      if (!mountedRef.current) return;
+      reload();
+    } catch (err) {
+      if (!mountedRef.current) return;
+      console.error('Delete ASIN failed:', err);
+    }
   };
 
   if (loading) return <Loading />;

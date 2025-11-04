@@ -3,7 +3,7 @@
  * F-WEB-2: 支持分组的增删改查
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Modal, Table, Button, Form, Input, Space, Popconfirm, message, Divider } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { useFetch } from '../hooks/useFetch';
@@ -22,6 +22,14 @@ const GroupManageModal: React.FC<GroupManageModalProps> = ({ open, onClose, onGr
   const [editingId, setEditingId] = useState<number | null>(null);
   const [page, setPage] = useState(1);
   const pageSize = 10;
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const { data, loading, error, reload } = useFetch(
     () => fetchGroups(page - 1, pageSize),
@@ -32,11 +40,13 @@ const GroupManageModal: React.FC<GroupManageModalProps> = ({ open, onClose, onGr
     try {
       const values = await form.validateFields();
       await createGroup(values);
+      if (!mountedRef.current) return;
       message.success('分组创建成功');
       form.resetFields();
       reload();
       onGroupChange?.();
     } catch (err) {
+      if (!mountedRef.current) return;
       message.error(`创建失败: ${err}`);
     }
   };
@@ -50,12 +60,14 @@ const GroupManageModal: React.FC<GroupManageModalProps> = ({ open, onClose, onGr
     try {
       const values = await form.validateFields();
       await updateGroup(id, values);
+      if (!mountedRef.current) return;
       message.success('分组更新成功');
       setEditingId(null);
       form.resetFields();
       reload();
       onGroupChange?.();
     } catch (err) {
+      if (!mountedRef.current) return;
       message.error(`更新失败: ${err}`);
     }
   };
@@ -63,10 +75,12 @@ const GroupManageModal: React.FC<GroupManageModalProps> = ({ open, onClose, onGr
   const handleDelete = async (id: number) => {
     try {
       await deleteGroup(id);
+      if (!mountedRef.current) return;
       message.success('分组已删除');
       reload();
       onGroupChange?.();
     } catch (err) {
+      if (!mountedRef.current) return;
       message.error(`删除失败: ${err}`);
     }
   };

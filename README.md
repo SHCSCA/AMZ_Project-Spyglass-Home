@@ -109,6 +109,22 @@ npm run lint        # 代码检查
 
 # 自定义配置
 VITE_API_BASE_URL=/api FRONTEND_PORT=9090 ./scripts/docker-up.sh
+
+# 禁用缓存重新构建
+./scripts/docker-up.sh --no-cache
+
+# 强制重新构建镜像
+./scripts/docker-up.sh --rebuild
+```
+
+### API验证
+
+```bash
+# 验证后端API是否正常
+./scripts/verify-api.sh
+
+# 使用自定义API地址
+VITE_API_BASE_URL=http://localhost:8081 ./scripts/verify-api.sh
 ```
 
 详细部署文档: `docs/DEPLOYMENT.md`

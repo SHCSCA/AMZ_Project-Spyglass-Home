@@ -8,17 +8,20 @@ import { PageResponse } from '../types';
 export interface GroupResponse {
   id: number;
   name: string;
+  description?: string; // 后端返回description字段
   createdAt?: string;
   updatedAt?: string;
-  asinCount?: number; // 后端可能聚合返回
+  asinCount?: number; // 后端聚合返回
 }
 
 export interface CreateGroupDto {
   name: string;
+  description?: string;
 }
 
 export interface UpdateGroupDto {
   name: string;
+  description?: string;
 }
 
 /**

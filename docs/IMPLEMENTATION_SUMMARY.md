@@ -1,14 +1,78 @@
 # Spyglass 前端功能增强实施报告
 
-生成时间: 2024-01  
-实施版本: v0.2.0  
-实施人员: GitHub Copilot
+生成时间: 2024-11  
+实施版本: v0.2.1  
+最后更新: 2024-11-04
 
 ---
 
-## 📊 实施概况
+## 🔧 v0.2.1 补丁更新 (2024-11-04)
 
-本次实施完成了**PRD功能缺口分析**和**核心功能增强**,主要包括:
+### 修复的问题
+
+1. **React #310 错误修复** ✅
+   - 问题: 组件卸载后仍执行状态更新，导致 "Minified React error #310"
+   - 修复文件:
+     - `src/components/GroupManageModal.tsx` - 添加 `mountedRef` 防止卸载后状态更新
+     - `src/pages/DashboardPage.tsx` - 异步操作添加卸载检查
+   - 修复方式: 使用 `useRef` + `useEffect` 清理函数跟踪组件挂载状态
+
+2. **后端API对接验证** ✅
+   - 确认后端分组管理API可用: `/api/groups` (GET/POST/PUT/DELETE)
+   - 更新 `GroupResponse` 接口添加 `description` 字段匹配后端响应
+   - 验证API返回格式符合 `PageResponse<T>` 结构
+
+3. **Docker启动脚本优化** ✅
+   - 更新 `scripts/docker-up.sh`:
+     - 添加 `--rebuild` 参数支持强制重新构建
+     - 优化输出格式，添加emoji和分隔线
+     - 默认API地址改为 `/api` (推荐反向代理)
+     - 添加部署成功后的常用命令提示
+
+### 代码变更详情
+
+#### GroupManageModal.tsx
+
+```typescript
+// 添加挂载状态追踪
+const mountedRef = useRef(true);
+
+useEffect(() => {
+  mountedRef.current = true;
+  return () => {
+    mountedRef.current = false; // 清理时标记已卸载
+  };
+}, []);
+
+// 异步操作添加卸载检查
+const handleAdd = async () => {
+  try {
+    await createGroup(values);
+    if (!mountedRef.current) return; // 卸载后直接返回
+    // ... 状态更新
+  }
+};
+```
+
+#### DashboardPage.tsx
+
+```typescript
+// 同样添加挂载状态追踪
+const mountedRef = useRef(true);
+
+// 所有异步handler添加卸载检查
+const handleAdd = async () => {
+  try {
+    await apiRequest(...);
+    if (!mountedRef.current) return;
+    setOpenAdd(false); // 仅在挂载时更新状态
+  }
+};
+```
+
+---
+
+## 📊 实施概况本次实施完成了**PRD功能缺口分析**和**核心功能增强**,主要包括:
 
 - ✅ **分组管理功能** (F-WEB-2)
 - ✅ **分组筛选功能** (F-WEB-1.1)
