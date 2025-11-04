@@ -109,12 +109,12 @@ const AsinDetailPage: React.FC = () => {
     error: errorReviews,
   } = useFetch(() => fetchNegativeReviews(id!, reviewPage - 1, reviewPageSize), [id, reviewPage]);
 
-  if (loading) return <Loading />;
-  if (error) return <ErrorMessage error={error} />;
-
+  // ⚠️ 所有 Hooks (useMemo) 必须在条件返回之前调用
+  // 否则会违反 React Hooks 规则导致 #310 错误
   const historyPoints: HistoryPoint[] = useMemo(() => {
+    if (!historyResp) return [];  // 添加空值检查
     try {
-      const pts = (historyResp?.items || []).map(mapHistoryPoint);
+      const pts = (historyResp.items || []).map(mapHistoryPoint);
       logInfo('asin_detail_history_loaded', { id, count: pts.length, range });
       return pts;
     } catch (e) {
@@ -244,6 +244,10 @@ const AsinDetailPage: React.FC = () => {
       return { title: { text: title } } as EChartsOption;
     }
   };
+
+  // 条件返回必须在所有 Hooks 之后（React Hooks 规则）
+  if (loading) return <Loading />;
+  if (error) return <ErrorMessage error={error} />;
 
   return (
     <div>
