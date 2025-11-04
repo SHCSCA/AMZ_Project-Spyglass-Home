@@ -283,31 +283,51 @@ const AsinDetailPage: React.FC = () => {
   if (error) return <ErrorMessage error={error} />;
 
   return (
-    <div>
-      <h2 style={{ marginBottom: 16 }}>ASIN 详情: {asin}</h2>
-      <Row gutter={16} style={{ marginBottom: 16 }}>
+    <div style={{ fontSize: '14px' }}>
+      <h2 style={{ marginBottom: 16, fontSize: '20px' }}>ASIN 详情: {asin}</h2>
+      <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
         <Col span={6}>
-          <Card>
-            <Statistic title="当前价格" value={latest?.price ?? '-'} prefix="$" />
+          <Card size="small">
+            <Statistic
+              title="当前价格"
+              value={latest?.price ?? '-'}
+              prefix="$"
+              valueStyle={{ fontSize: '20px' }}
+            />
           </Card>
         </Col>
         <Col span={6}>
-          <Card>
-            <Statistic title="当前BSR" value={latest?.bsr ?? '-'} />
+          <Card size="small">
+            <Statistic
+              title="当前BSR"
+              value={latest?.bsr ?? '-'}
+              valueStyle={{ fontSize: '20px' }}
+            />
           </Card>
         </Col>
         <Col span={6}>
-          <Card>
-            <Statistic title="当前库存" value={latest?.inventory ?? '-'} />
+          <Card size="small">
+            <Statistic
+              title="当前库存"
+              value={latest?.inventory ?? '-'}
+              valueStyle={{ fontSize: '20px' }}
+            />
           </Card>
         </Col>
         <Col span={6}>
-          <Card>
+          <Card size="small">
             <Statistic
               title="BSR小类排名"
               value={latest?.bsrSubcategoryRank ?? '-'}
-              suffix={latest?.bsrSubcategory ? `(${latest.bsrSubcategory})` : ''}
+              valueStyle={{ fontSize: '20px' }}
             />
+          </Card>
+        </Col>
+        <Col span={24}>
+          <Card size="small">
+            <div style={{ fontSize: '13px', color: '#666' }}>
+              <strong>BSR小类分类:</strong> {latest?.bsrSubcategory || '-'}
+            </div>
           </Card>
         </Col>
       </Row>

@@ -5,13 +5,12 @@
  */
 
 import React, { useState, useMemo } from 'react';
-import { Table, Modal, Descriptions, Typography, Tag } from 'antd';
+import { Table, Modal, Descriptions, Tag } from 'antd';
 import { ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { AsinHistoryPoint } from '../types';
 import dayjs from 'dayjs';
-
-const { Paragraph } = Typography;
+import DiffMatchPatch from 'diff-match-patch';
 
 interface HistoryDataTableProps {
   data: AsinHistoryPoint[];
@@ -30,16 +29,26 @@ interface ChangeIndicator {
 const HistoryDataTable: React.FC<HistoryDataTableProps> = ({ data, loading }) => {
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<AsinHistoryPoint | null>(null);
+  const [selectedIndex, setSelectedIndex] = useState<number>(-1);
 
-  const handleRowClick = (record: AsinHistoryPoint) => {
+  const handleRowClick = (record: AsinHistoryPoint, index: number) => {
     setSelectedRecord(record);
+    setSelectedIndex(index);
     setDetailModalOpen(true);
   };
 
-  // 计算每个字段相对于前一条记录的变化
+  // 按时间倒序排列(最新的在前)
+  const sortedData = useMemo(() => {
+    return [...data].sort(
+      (a, b) => new Date(b.snapshotAt).getTime() - new Date(a.snapshotAt).getTime()
+    );
+  }, [data]);
+
+  // 计算每个字段相对于该ASIN的上一条数据的变化
   const dataWithChanges = useMemo(() => {
-    return data.map((record, index) => {
-      const prev = index > 0 ? data[index - 1] : null;
+    return sortedData.map((record, index) => {
+      // 上一条数据是时间上更早的(index+1,因为已按时间倒序排列)
+      const prev = index < sortedData.length - 1 ? sortedData[index + 1] : null;
 
       const getChange = (
         current: number | string | undefined | null,
@@ -64,6 +73,7 @@ const HistoryDataTable: React.FC<HistoryDataTableProps> = ({ data, loading }) =>
 
       return {
         ...record,
+        prevRecord: prev, // 保存上一条记录用于diff
         changes: {
           price: getChange(record.price, prev?.price, true),
           bsr: getChange(record.bsr, prev?.bsr, true),
@@ -77,7 +87,7 @@ const HistoryDataTable: React.FC<HistoryDataTableProps> = ({ data, loading }) =>
         },
       };
     });
-  }, [data]);
+  }, [sortedData]);
 
   const renderChangeIndicator = (
     value: number | string | undefined | null,
@@ -104,6 +114,57 @@ const HistoryDataTable: React.FC<HistoryDataTableProps> = ({ data, loading }) =>
     return displayValue;
   };
 
+  // 文本diff渲染函数
+  // 文本diff渲染函数 - 删除=红色,新增=绿色
+  const renderTextDiff = (current: string | undefined, previous: string | undefined) => {
+    if (!current && !previous) return <span>-</span>;
+    if (!previous) return <span>{current}</span>;
+    if (!current)
+      return <span style={{ color: '#cf1322', textDecoration: 'line-through' }}>{previous}</span>;
+    if (current === previous) return <span>{current}</span>;
+
+    const dmp = new DiffMatchPatch();
+    const diffs = dmp.diff_main(previous, current);
+    dmp.diff_cleanupSemantic(diffs);
+
+    return (
+      <div style={{ lineHeight: '1.8' }}>
+        {diffs.map((diff, i) => {
+          const [operation, text] = diff;
+          if (operation === 0) {
+            // 未变化
+            return <span key={i}>{text}</span>;
+          } else if (operation === 1) {
+            // 新增 - 绿色加粗
+            return (
+              <span
+                key={i}
+                style={{ backgroundColor: '#e6f7e6', color: '#3f8600', fontWeight: 'bold' }}
+              >
+                {text}
+              </span>
+            );
+          } else {
+            // 删除 - 红色加粗加删除线
+            return (
+              <span
+                key={i}
+                style={{
+                  backgroundColor: '#ffe6e6',
+                  color: '#cf1322',
+                  fontWeight: 'bold',
+                  textDecoration: 'line-through',
+                }}
+              >
+                {text}
+              </span>
+            );
+          }
+        })}
+      </div>
+    );
+  };
+
   const columns: ColumnsType<(typeof dataWithChanges)[0]> = [
     {
       title: '快照时间',
@@ -111,8 +172,7 @@ const HistoryDataTable: React.FC<HistoryDataTableProps> = ({ data, loading }) =>
       width: 160,
       fixed: 'left',
       render: (time: string) => dayjs(time).format('YYYY-MM-DD HH:mm'),
-      sorter: (a, b) => new Date(a.snapshotAt).getTime() - new Date(b.snapshotAt).getTime(),
-      defaultSortOrder: 'descend',
+      defaultSortOrder: 'ascend',
     },
     {
       title: '价格',
@@ -204,6 +264,12 @@ const HistoryDataTable: React.FC<HistoryDataTableProps> = ({ data, loading }) =>
     },
   ];
 
+  // 获取选中记录和上一条记录
+  const selectedRecordWithPrev = useMemo(() => {
+    if (selectedIndex < 0 || selectedIndex >= dataWithChanges.length) return null;
+    return dataWithChanges[selectedIndex];
+  }, [selectedIndex, dataWithChanges]);
+
   return (
     <>
       <Table
@@ -212,8 +278,8 @@ const HistoryDataTable: React.FC<HistoryDataTableProps> = ({ data, loading }) =>
         columns={columns}
         loading={loading}
         pagination={false}
-        onRow={(record) => ({
-          onClick: () => handleRowClick(record),
+        onRow={(record, index) => ({
+          onClick: () => handleRowClick(record, index!),
           style: { cursor: 'pointer' },
         })}
         size="small"
@@ -221,62 +287,85 @@ const HistoryDataTable: React.FC<HistoryDataTableProps> = ({ data, loading }) =>
       />
 
       <Modal
-        title="快照详情"
+        title="快照详情对比"
         open={detailModalOpen}
         onCancel={() => setDetailModalOpen(false)}
         footer={null}
-        width={900}
+        width={1000}
       >
-        {selectedRecord && (
-          <Descriptions column={2} bordered size="small">
-            <Descriptions.Item label="快照时间" span={2}>
-              {dayjs(selectedRecord.snapshotAt).format('YYYY-MM-DD HH:mm')}
-            </Descriptions.Item>
-            <Descriptions.Item label="价格">
-              {selectedRecord.price != null ? `$${selectedRecord.price.toFixed(2)}` : '-'}
-            </Descriptions.Item>
-            <Descriptions.Item label="库存">{selectedRecord.inventory ?? '-'}</Descriptions.Item>
-            <Descriptions.Item label="BSR排名">
-              {selectedRecord.bsr?.toLocaleString() || '-'}
-            </Descriptions.Item>
-            <Descriptions.Item label="BSR分类">
-              {selectedRecord.bsrCategory || '-'}
-            </Descriptions.Item>
-            <Descriptions.Item label="BSR小类">
-              {selectedRecord.bsrSubcategory || '-'}
-            </Descriptions.Item>
-            <Descriptions.Item label="BSR小类排名">
-              {selectedRecord.bsrSubcategoryRank?.toLocaleString() || '-'}
-            </Descriptions.Item>
-            <Descriptions.Item label="评分">
-              {selectedRecord.avgRating != null ? selectedRecord.avgRating.toFixed(2) : '-'}
-            </Descriptions.Item>
-            <Descriptions.Item label="评论数">
-              {selectedRecord.totalReviews?.toLocaleString() || '-'}
-            </Descriptions.Item>
-            <Descriptions.Item label="完整标题" span={2}>
-              <Paragraph
-                copyable
-                ellipsis={{ rows: 3, expandable: true }}
-                style={{ marginBottom: 0 }}
+        {selectedRecord && selectedRecordWithPrev && (
+          <div>
+            <Descriptions column={2} bordered size="small">
+              <Descriptions.Item label="快照时间" span={2}>
+                {dayjs(selectedRecord.snapshotAt).format('YYYY-MM-DD HH:mm')}
+              </Descriptions.Item>
+              <Descriptions.Item label="价格">
+                {selectedRecord.price != null ? `$${selectedRecord.price.toFixed(2)}` : '-'}
+              </Descriptions.Item>
+              <Descriptions.Item label="库存">{selectedRecord.inventory ?? '-'}</Descriptions.Item>
+              <Descriptions.Item label="BSR排名">
+                {selectedRecord.bsr?.toLocaleString() || '-'}
+              </Descriptions.Item>
+              <Descriptions.Item label="BSR分类">
+                {selectedRecord.bsrCategory || '-'}
+              </Descriptions.Item>
+              <Descriptions.Item label="BSR小类">
+                {selectedRecord.bsrSubcategory || '-'}
+              </Descriptions.Item>
+              <Descriptions.Item label="BSR小类排名">
+                {selectedRecord.bsrSubcategoryRank?.toLocaleString() || '-'}
+              </Descriptions.Item>
+              <Descriptions.Item label="评分">
+                {selectedRecord.avgRating != null ? selectedRecord.avgRating.toFixed(2) : '-'}
+              </Descriptions.Item>
+              <Descriptions.Item label="评论数">
+                {selectedRecord.totalReviews?.toLocaleString() || '-'}
+              </Descriptions.Item>
+            </Descriptions>
+
+            <div style={{ marginTop: 16 }}>
+              <h4 style={{ marginBottom: 8 }}>标题变化对比:</h4>
+              <div
+                style={{
+                  padding: '12px',
+                  backgroundColor: '#fafafa',
+                  border: '1px solid #d9d9d9',
+                  borderRadius: '4px',
+                  fontSize: '13px',
+                }}
               >
-                {selectedRecord.title || '-'}
-              </Paragraph>
-            </Descriptions.Item>
-            <Descriptions.Item label="五点描述" span={2}>
-              <Paragraph
-                copyable
-                ellipsis={{ rows: 5, expandable: true }}
-                style={{ marginBottom: 0, whiteSpace: 'pre-line' }}
+                {renderTextDiff(selectedRecord.title, selectedRecordWithPrev.prevRecord?.title)}
+              </div>
+            </div>
+
+            <div style={{ marginTop: 16 }}>
+              <h4 style={{ marginBottom: 8 }}>五点描述变化对比:</h4>
+              <div
+                style={{
+                  padding: '12px',
+                  backgroundColor: '#fafafa',
+                  border: '1px solid #d9d9d9',
+                  borderRadius: '4px',
+                  fontSize: '13px',
+                  whiteSpace: 'pre-wrap',
+                }}
               >
-                {selectedRecord.bulletPoints || '-'}
-              </Paragraph>
-            </Descriptions.Item>
-            <Descriptions.Item label="主图MD5">{selectedRecord.imageMd5 || '-'}</Descriptions.Item>
-            <Descriptions.Item label="A+内容MD5">
-              {selectedRecord.aplusMd5 || '-'}
-            </Descriptions.Item>
-          </Descriptions>
+                {renderTextDiff(
+                  selectedRecord.bulletPoints,
+                  selectedRecordWithPrev.prevRecord?.bulletPoints
+                )}
+              </div>
+            </div>
+
+            <Descriptions column={2} bordered size="small" style={{ marginTop: 16 }}>
+              <Descriptions.Item label="主图MD5">
+                {selectedRecord.imageMd5 || '-'}
+              </Descriptions.Item>
+              <Descriptions.Item label="A+内容MD5">
+                {selectedRecord.aplusMd5 || '-'}
+              </Descriptions.Item>
+            </Descriptions>
+          </div>
         )}
       </Modal>
     </>
