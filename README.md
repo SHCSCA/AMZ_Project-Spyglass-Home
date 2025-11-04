@@ -12,16 +12,36 @@
 
 ## 🔍 项目概览 (Overview)
 
-本仓库仅包含前端 UI，不包括后端实现。后端接口已部署在外部服务器，通过环境变量 `VITE_API_BASE_URL` 指定（推荐使用相对路径 `/api` 并配合反向代理）。
+本仓库为**前端UI**部分,后端接口已部署在外部服务器(`http://shcamz.xyz:8081`),通过环境变量 `VITE_API_BASE_URL` 指定(推荐使用相对路径 `/api` 并配合nginx反向代理)。
 
-完整的产品需求文档 (PRD) 已迁移至：`docs/PRD.md`。
+完整的产品需求文档 (PRD) 见：`docs/PRD.md`  
+功能Gap分析报告见：`docs/GAP_ANALYSIS.md`
 
-**核心用户旅程：**
+**核心功能：**
 
-1. 登录即知：默认页显示全局告警。
-2. 大盘总览：仪表盘查看所有监控 ASIN 最新状态。
-3. 深度分析：详情页查看历史图表、告警与差评。
-4. 管理监控：仪表盘增删改 ASIN 配置。
+1. **全局告警** - 实时查看所有ASIN的价格/库存/内容变更告警
+2. **监控仪表盘** - 批量管理ASIN监控任务,支持分组筛选
+3. **ASIN详情** - 多维度图表(价格/BSR/库存趋势)+告警记录+差评列表+历史数据表格
+4. **分组管理** - 创建/编辑/删除分组,组织ASIN监控任务
+
+---
+
+## ✨ 新增功能 (Latest Updates)
+
+### v0.2.0 (2024-01)
+
+- ✅ **分组管理** (F-WEB-2): 新增 `GroupManageModal` 组件,支持分组CRUD
+- ✅ **分组筛选** (F-WEB-1.1): Dashboard添加分组下拉筛选器
+- ✅ **历史数据表格** (F-WEB-4.5): ASIN详情页新增第3个Tab,表格形式展示历史快照
+- ✅ **API层重构**: 抽离内联API调用到 `groupApi.ts` 和 `asinApi.ts`
+- ✅ **监控配置类型**: 定义 `MonitorConfig` 接口支持监控阈值配置(待后端实现)
+
+### v0.1.0 (2023-11)
+
+- ✅ 基础ASIN监控功能
+- ✅ 告警红点提示
+- ✅ ECharts动态图表
+- ✅ 适配后端PageResponse分页结构
 
 ---
 
@@ -29,15 +49,16 @@
 
 | 层面     | 选型                                   |
 | -------- | -------------------------------------- |
-| 框架     | React 18 + Vite                        |
+| 框架     | React 18 + Vite 5                      |
 | 语言     | TypeScript 5                           |
 | UI       | Ant Design 5                           |
-| 图表     | ECharts 5 (按需懒加载封装)             |
+| 图表     | ECharts 5 (懒加载优化)                 |
+| 路由     | React Router v6                        |
 | 构建     | Vite / ESBuild                         |
 | 测试     | Vitest + Testing Library               |
 | 提交规范 | commitlint + husky + lint-staged       |
 | 格式化   | Prettier + ESLint (@typescript-eslint) |
-| 日志     | 简易内存日志 + LogViewer               |
+| 日志     | 简易内存日志 + LogViewer组件           |
 
 ---
 
@@ -45,7 +66,10 @@
 
 ### 环境准备
 
-Node.js >= 20 （依赖若干库要求 Node 20+，使用 `.nvmrc` 保持一致）
+```bash
+Node.js >= 20
+npm >= 10
+```
 
 ### 安装依赖
 
@@ -66,26 +90,28 @@ echo "VITE_API_BASE_URL=/api" >> .env
 npm run dev
 ```
 
-访问: http://localhost:8082 （依赖 `docker-compose.yml` 中的端口映射或修改本地端口策略）
+访问: http://localhost:8082
 
 ### 构建/预览
 
 ```bash
-npm run build
-npm run preview
+npm run build       # 生产构建
+npm run preview     # 预览构建产物
+npm run test        # 运行测试
+npm run lint        # 代码检查
 ```
 
-### 一键 Docker 脚本
+### Docker部署
 
 ```bash
+# 快速启动 (使用默认配置)
 ./scripts/docker-up.sh
-```
 
-自定义：
-
-```bash
+# 自定义配置
 VITE_API_BASE_URL=/api FRONTEND_PORT=9090 ./scripts/docker-up.sh
 ```
+
+详细部署文档: `docs/DEPLOYMENT.md`
 
 ---
 
@@ -93,14 +119,71 @@ VITE_API_BASE_URL=/api FRONTEND_PORT=9090 ./scripts/docker-up.sh
 
 ```
 src/
-    api/            # API 客户端 (重试/超时/缓存/日志)
-    components/     # 通用展示组件 (Loading / ErrorMessage / Sidebar / LogViewer)
-    hooks/          # 数据获取抽象 (useFetch / usePagedFetch)
-    pages/          # 页面级组件 (Alerts / Dashboard / AsinDetail / ReactEChartsLazy)
-    constants/      # 全局默认配置 (超时/重试/TTL/Swagger URL)
+    api/                # API客户端层
+        client.ts         # 核心apiRequest函数(重试/超时/日志)
+        adapters.ts       # 数据适配器(ensurePageResponse/formatPercent)
+        mappers.ts        # 响应数据映射函数
+        groupApi.ts       # 分组管理API (NEW)
+        asinApi.ts        # ASIN管理API (NEW)
+    components/         # 可复用组件
+        AppSidebar.tsx    # 侧边导航栏
+        AsinAlertsList.tsx
+        NegativeReviewsList.tsx
+        ErrorMessage.tsx
+        Loading.tsx
+        LogViewer.tsx     # 日志查看器
+        GroupManageModal.tsx      # 分组管理Modal (NEW)
+        HistoryDataTable.tsx      # 历史数据表格 (NEW)
+    hooks/              # 自定义Hooks
+        useFetch.ts       # 通用数据获取Hook
+        usePagedFetch.ts  # 分页数据Hook
+    pages/              # 页面组件
+        AlertsPage.tsx         # 全局告警页
+        DashboardPage.tsx      # ASIN监控仪表盘 (已集成分组筛选)
+        AsinDetailPage.tsx     # ASIN详情页 (已新增历史表格Tab)
+        ReactEChartsLazy.tsx   # ECharts懒加载封装
+    constants/          # 全局配置
+        config.ts         # API超时/重试/缓存配置
+    types/              # TypeScript类型定义
+        index.ts          # 核心类型(PageResponse/AsinItem/AlertItem等)
+    utils/              # 工具函数
+        typeGuards.ts     # 类型守卫
+    __tests__/          # 单元测试
+    logger.ts           # 日志工具
+    main.tsx            # 应用入口
+    App.tsx             # 根组件
+
+docs/
+    PRD.md              # 产品需求文档
+    GAP_ANALYSIS.md     # 功能缺口分析报告 (NEW)
+    DEPLOYMENT.md       # 部署文档
+    views/              # 视图需求细节
+        Alerts.md
+        Dashboard.md
+        AsinDetail.md
+
+scripts/
+    docker-up.sh        # Docker快速启动脚本
+    check-api.sh        # API健康检查脚本
+
+tests/                  # 测试配置
+    setup.ts
+
+配置文件:
+    vite.config.ts      # Vite构建配置
+    vitest.config.ts    # 测试配置
+    tsconfig.json       # TypeScript配置
+    commitlint.config.cjs   # 提交消息规范
+    .prettierrc         # 代码格式化
+    .env.example        # 环境变量模板
+    docker-compose.yml  # Docker编排
+    nginx.conf          # Nginx配置
+```
+
     types/          # TypeScript 接口与类型
     utils/          # 类型守卫等工具
-```
+
+````
 
 ---
 
@@ -130,7 +213,7 @@ src/
 
 ```bash
 npm run test
-```
+````
 
 ---
 

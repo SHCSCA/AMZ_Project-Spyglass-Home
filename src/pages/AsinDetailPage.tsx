@@ -21,6 +21,7 @@ import dayjs, { Dayjs } from 'dayjs';
 import type { RadioChangeEvent } from 'antd/es/radio';
 import AsinAlertsList from '../components/AsinAlertsList';
 import NegativeReviewsList from '../components/NegativeReviewsList';
+import HistoryDataTable from '../components/HistoryDataTable';
 
 async function fetchHistory(
   id: string,
@@ -391,6 +392,11 @@ const AsinDetailPage: React.FC = () => {
                   onPageChange={setReviewPage}
                 />
               ),
+            },
+            {
+              key: 'historyTable',
+              label: '历史数据表格',
+              children: <HistoryDataTable data={historyResp?.items || []} loading={loading} />,
             },
           ]}
         />

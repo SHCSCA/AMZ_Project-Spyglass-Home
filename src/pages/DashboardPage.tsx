@@ -10,18 +10,32 @@ import {
   Popconfirm,
   Badge,
   Tag,
+  Select,
 } from 'antd';
+import { SettingOutlined } from '@ant-design/icons';
 import { apiRequest } from '../api/client';
 import { AsinItem, PageResponse, AsinResponse, AlertLogResponse, AlertItem } from '../types';
 import { ensurePageResponse } from '../api/adapters';
-import { mapAsin, mapAlertLog } from '../api';
+import { mapAsin, mapAlertLog, fetchGroups, GroupResponse } from '../api';
 import Loading from '../components/Loading';
 import ErrorMessage from '../components/ErrorMessage';
+import GroupManageModal from '../components/GroupManageModal';
 import { useFetch } from '../hooks/useFetch';
 import { useNavigate } from 'react-router-dom';
 
-async function fetchAsins(page: number, size: number): Promise<PageResponse<AsinResponse>> {
-  const raw = await apiRequest<unknown>(`/api/asin?page=${page}&size=${size}`);
+async function fetchAsins(
+  page: number,
+  size: number,
+  groupId?: number
+): Promise<PageResponse<AsinResponse>> {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    size: size.toString(),
+  });
+  if (groupId !== undefined && groupId !== null && groupId !== -1) {
+    params.append('groupId', groupId.toString());
+  }
+  const raw = await apiRequest<unknown>(`/api/asin?${params}`);
   return ensurePageResponse<AsinResponse>(raw, page, size);
 }
 async function fetchAlerts(): Promise<PageResponse<AlertLogResponse>> {
@@ -32,11 +46,17 @@ async function fetchAlerts(): Promise<PageResponse<AlertLogResponse>> {
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
+  const [selectedGroupId, setSelectedGroupId] = useState<number>(-1); // -1表示全部
   const pageSize = 20;
-  const { data, loading, error, reload } = useFetch(() => fetchAsins(page - 1, pageSize), [page]);
+  const { data, loading, error, reload } = useFetch(
+    () => fetchAsins(page - 1, pageSize, selectedGroupId),
+    [page, selectedGroupId]
+  );
   const { data: alertsResp } = useFetch(fetchAlerts, []);
+  const { data: groupsResp, reload: reloadGroups } = useFetch(() => fetchGroups(0, 100), []);
   const [openAdd, setOpenAdd] = useState(false);
   const [openEdit, setOpenEdit] = useState<AsinItem | null>(null);
+  const [openGroupManage, setOpenGroupManage] = useState(false);
   const [form] = Form.useForm<Partial<AsinItem>>();
 
   const handleAdd = async () => {
@@ -69,6 +89,13 @@ const DashboardPage: React.FC = () => {
 
   const asinRows: AsinItem[] = (data?.items || []).map(mapAsin);
   const alertItems: AlertItem[] = (alertsResp?.items || []).map(mapAlertLog);
+  const groupOptions = [
+    { label: '全部分组', value: -1 },
+    ...((groupsResp?.items || []) as GroupResponse[]).map((g) => ({
+      label: g.name,
+      value: g.id,
+    })),
+  ];
 
   const columns = [
     {
@@ -125,6 +152,15 @@ const DashboardPage: React.FC = () => {
   return (
     <div>
       <Space style={{ marginBottom: 16 }}>
+        <Select
+          style={{ width: 200 }}
+          value={selectedGroupId}
+          onChange={(val) => {
+            setSelectedGroupId(val);
+            setPage(1); // 切换分组时重置到第一页
+          }}
+          options={groupOptions}
+        />
         <Button
           type="primary"
           onClick={() => {
@@ -133,6 +169,9 @@ const DashboardPage: React.FC = () => {
           }}
         >
           添加ASIN
+        </Button>
+        <Button icon={<SettingOutlined />} onClick={() => setOpenGroupManage(true)}>
+          管理分组
         </Button>
       </Space>
       <Table
@@ -205,6 +244,16 @@ const DashboardPage: React.FC = () => {
           </Form.Item>
         </Form>
       </Modal>
+
+      {/* 分组管理Modal */}
+      <GroupManageModal
+        open={openGroupManage}
+        onClose={() => setOpenGroupManage(false)}
+        onGroupChange={() => {
+          reloadGroups(); // 刷新分组列表
+          reload(); // 刷新ASIN列表(groupName可能变化)
+        }}
+      />
     </div>
   );
 };
