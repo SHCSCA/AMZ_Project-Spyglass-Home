@@ -7,7 +7,11 @@ import { useFetch } from './useFetch';
  * - 内部自动将页码转换为后端 0-based
  * - 返回 items/total 便于直接解构使用
  */
-export function usePagedFetch<T>(build: (page: number) => Promise<any>, deps: any[], pageSize = 20) {
+export function usePagedFetch<T = unknown>(
+  build: (page: number) => Promise<{ items?: T[]; total?: number }>,
+  deps: unknown[],
+  pageSize = 20
+) {
   const [page, setPage] = useState(1); // UI 使用 1 起始更符合直觉
   const { data, loading, error, reload } = useFetch(() => build(page - 1), [page, ...deps]);
 
@@ -19,7 +23,7 @@ export function usePagedFetch<T>(build: (page: number) => Promise<any>, deps: an
     loading,
     error,
     reload,
-    items: data?.items || [],
+    items: (data?.items || []) as T[],
     total: data?.total || 0,
   } as const;
 }
