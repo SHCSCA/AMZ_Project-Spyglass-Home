@@ -1,4 +1,14 @@
-import { AlertLogResponse, AlertItem, ReviewAlertResponse, ReviewItem, AsinResponse, AsinItem, AsinHistoryPoint, HistoryPoint } from '../types';
+import {
+  AlertLogResponse,
+  AlertItem,
+  ReviewAlertResponse,
+  ReviewItem,
+  AsinResponse,
+  AsinItem,
+  AsinHistoryPoint,
+  HistoryPoint,
+} from '../types';
+import { formatPercent } from './adapters';
 
 export function mapAlertLog(r: AlertLogResponse): AlertItem {
   return {
@@ -10,7 +20,8 @@ export function mapAlertLog(r: AlertLogResponse): AlertItem {
     message: r.message || r.alertType,
     oldValue: r.oldValue,
     newValue: r.newValue,
-    changePercent: r.changePercent,
+    // change_percent 可能后端输出数值或字符串，统一格式为带符号百分比字符串
+    changePercent: formatPercent(r.changePercent as string | number | undefined),
     severity: r.severity,
     // status: 后端暂未实现，保持 undefined
   };
