@@ -1,10 +1,12 @@
 /**
  * 历史数据表格Tab (F-WEB-4.5)
  * 复用现有historyPoints数据,提供表格视图
+ * 展示全量数据并标记变化
  */
 
-import React, { useState } from 'react';
-import { Table, Modal, Descriptions, Typography } from 'antd';
+import React, { useState, useMemo } from 'react';
+import { Table, Modal, Descriptions, Typography, Tag } from 'antd';
+import { ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { AsinHistoryPoint } from '../types';
 import dayjs from 'dayjs';
@@ -16,6 +18,15 @@ interface HistoryDataTableProps {
   loading?: boolean;
 }
 
+// 定义变化类型
+type ChangeType = 'up' | 'down' | 'unchanged' | 'new';
+
+interface ChangeIndicator {
+  type: ChangeType;
+  prev?: number | string;
+  current?: number | string;
+}
+
 const HistoryDataTable: React.FC<HistoryDataTableProps> = ({ data, loading }) => {
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<AsinHistoryPoint | null>(null);
@@ -25,11 +36,80 @@ const HistoryDataTable: React.FC<HistoryDataTableProps> = ({ data, loading }) =>
     setDetailModalOpen(true);
   };
 
-  const columns: ColumnsType<AsinHistoryPoint> = [
+  // 计算每个字段相对于前一条记录的变化
+  const dataWithChanges = useMemo(() => {
+    return data.map((record, index) => {
+      const prev = index > 0 ? data[index - 1] : null;
+
+      const getChange = (
+        current: number | string | undefined | null,
+        previous: number | string | undefined | null,
+        isNumeric: boolean = true
+      ): ChangeIndicator => {
+        if (!prev || current == null) return { type: 'new' };
+        if (previous == null) return { type: 'new', current };
+
+        if (isNumeric) {
+          const curr = Number(current);
+          const prevNum = Number(previous);
+          if (curr > prevNum) return { type: 'up', prev: previous, current };
+          if (curr < prevNum) return { type: 'down', prev: previous, current };
+          return { type: 'unchanged', prev: previous, current };
+        } else {
+          // 字符串比较 (MD5, 文本等)
+          if (current !== previous) return { type: 'up', prev: previous, current }; // 变化标红
+          return { type: 'unchanged', prev: previous, current };
+        }
+      };
+
+      return {
+        ...record,
+        changes: {
+          price: getChange(record.price, prev?.price, true),
+          bsr: getChange(record.bsr, prev?.bsr, true),
+          inventory: getChange(record.inventory, prev?.inventory, true),
+          avgRating: getChange(record.avgRating, prev?.avgRating, true),
+          totalReviews: getChange(record.totalReviews, prev?.totalReviews, true),
+          imageMd5: getChange(record.imageMd5, prev?.imageMd5, false),
+          aplusMd5: getChange(record.aplusMd5, prev?.aplusMd5, false),
+          title: getChange(record.title, prev?.title, false),
+          bulletPoints: getChange(record.bulletPoints, prev?.bulletPoints, false),
+        },
+      };
+    });
+  }, [data]);
+
+  const renderChangeIndicator = (
+    value: number | string | undefined | null,
+    change: ChangeIndicator,
+    formatter?: (v: number | string) => string
+  ) => {
+    if (value == null) return '-';
+
+    const displayValue = formatter ? formatter(value) : String(value);
+
+    if (change.type === 'up') {
+      return (
+        <span style={{ color: '#cf1322' }}>
+          {displayValue} <ArrowUpOutlined />
+        </span>
+      );
+    } else if (change.type === 'down') {
+      return (
+        <span style={{ color: '#3f8600' }}>
+          {displayValue} <ArrowDownOutlined />
+        </span>
+      );
+    }
+    return displayValue;
+  };
+
+  const columns: ColumnsType<(typeof dataWithChanges)[0]> = [
     {
       title: '快照时间',
       dataIndex: 'snapshotAt',
       width: 160,
+      fixed: 'left',
       render: (time: string) => dayjs(time).format('YYYY-MM-DD HH:mm'),
       sorter: (a, b) => new Date(a.snapshotAt).getTime() - new Date(b.snapshotAt).getTime(),
       defaultSortOrder: 'descend',
@@ -37,44 +117,90 @@ const HistoryDataTable: React.FC<HistoryDataTableProps> = ({ data, loading }) =>
     {
       title: '价格',
       dataIndex: 'price',
-      width: 100,
-      render: (price: number) => (price != null ? `$${price.toFixed(2)}` : '-'),
+      width: 120,
+      render: (price: number, record) =>
+        renderChangeIndicator(price, record.changes.price, (v) => `$${Number(v).toFixed(2)}`),
     },
     {
       title: 'BSR排名',
       dataIndex: 'bsr',
-      width: 100,
-      render: (bsr: number) => bsr?.toLocaleString() || '-',
-    },
-    {
-      title: 'BSR分类',
-      dataIndex: 'bsrCategory',
-      width: 150,
-      ellipsis: true,
+      width: 120,
+      render: (bsr: number, record) =>
+        renderChangeIndicator(bsr, record.changes.bsr, (v) => Number(v).toLocaleString()),
     },
     {
       title: '库存',
       dataIndex: 'inventory',
-      width: 80,
-      render: (inv: number) => inv ?? '-',
+      width: 100,
+      render: (inv: number, record) => renderChangeIndicator(inv, record.changes.inventory),
     },
     {
       title: '评分',
       dataIndex: 'avgRating',
-      width: 80,
-      render: (rating: number) => (rating != null ? rating.toFixed(1) : '-'),
+      width: 100,
+      render: (rating: number, record) =>
+        renderChangeIndicator(rating, record.changes.avgRating, (v) => Number(v).toFixed(1)),
     },
     {
       title: '评论数',
       dataIndex: 'totalReviews',
       width: 100,
-      render: (reviews: number) => reviews?.toLocaleString() || '-',
+      render: (reviews: number, record) =>
+        renderChangeIndicator(reviews, record.changes.totalReviews, (v) =>
+          Number(v).toLocaleString()
+        ),
+    },
+    {
+      title: '主图',
+      dataIndex: 'imageMd5',
+      width: 80,
+      render: (md5: string, record) =>
+        record.changes.imageMd5.type === 'up' ? (
+          <Tag color="red">已变更</Tag>
+        ) : md5 ? (
+          <Tag color="green">未变</Tag>
+        ) : (
+          '-'
+        ),
+    },
+    {
+      title: 'A+内容',
+      dataIndex: 'aplusMd5',
+      width: 80,
+      render: (md5: string, record) =>
+        record.changes.aplusMd5.type === 'up' ? (
+          <Tag color="red">已变更</Tag>
+        ) : md5 ? (
+          <Tag color="green">未变</Tag>
+        ) : (
+          '-'
+        ),
     },
     {
       title: '标题',
       dataIndex: 'title',
-      ellipsis: true,
-      render: (title: string) => <span title={title}>{title || '-'}</span>,
+      width: 80,
+      render: (title: string, record) =>
+        record.changes.title.type === 'up' ? (
+          <Tag color="red">已变更</Tag>
+        ) : title ? (
+          <Tag color="green">未变</Tag>
+        ) : (
+          '-'
+        ),
+    },
+    {
+      title: '五点',
+      dataIndex: 'bulletPoints',
+      width: 80,
+      render: (bp: string, record) =>
+        record.changes.bulletPoints.type === 'up' ? (
+          <Tag color="red">已变更</Tag>
+        ) : bp ? (
+          <Tag color="green">未变</Tag>
+        ) : (
+          '-'
+        ),
     },
   ];
 
@@ -82,35 +208,29 @@ const HistoryDataTable: React.FC<HistoryDataTableProps> = ({ data, loading }) =>
     <>
       <Table
         rowKey={(record) => record.id || record.snapshotAt}
-        dataSource={data}
+        dataSource={dataWithChanges}
         columns={columns}
         loading={loading}
-        pagination={{
-          pageSize: 20,
-          showTotal: (total) => `共 ${total} 条历史记录`,
-          showSizeChanger: true,
-          pageSizeOptions: [10, 20, 50, 100],
-        }}
+        pagination={false}
         onRow={(record) => ({
           onClick: () => handleRowClick(record),
           style: { cursor: 'pointer' },
         })}
         size="small"
-        scroll={{ x: 1000 }}
+        scroll={{ x: 1200, y: 600 }}
       />
 
-      {/* 详情Modal */}
       <Modal
         title="快照详情"
         open={detailModalOpen}
         onCancel={() => setDetailModalOpen(false)}
         footer={null}
-        width={800}
+        width={900}
       >
         {selectedRecord && (
           <Descriptions column={2} bordered size="small">
             <Descriptions.Item label="快照时间" span={2}>
-              {dayjs(selectedRecord.snapshotAt).format('YYYY-MM-DD HH:mm:ss')}
+              {dayjs(selectedRecord.snapshotAt).format('YYYY-MM-DD HH:mm')}
             </Descriptions.Item>
             <Descriptions.Item label="价格">
               {selectedRecord.price != null ? `$${selectedRecord.price.toFixed(2)}` : '-'}
@@ -121,6 +241,12 @@ const HistoryDataTable: React.FC<HistoryDataTableProps> = ({ data, loading }) =>
             </Descriptions.Item>
             <Descriptions.Item label="BSR分类">
               {selectedRecord.bsrCategory || '-'}
+            </Descriptions.Item>
+            <Descriptions.Item label="BSR小类">
+              {selectedRecord.bsrSubcategory || '-'}
+            </Descriptions.Item>
+            <Descriptions.Item label="BSR小类排名">
+              {selectedRecord.bsrSubcategoryRank?.toLocaleString() || '-'}
             </Descriptions.Item>
             <Descriptions.Item label="评分">
               {selectedRecord.avgRating != null ? selectedRecord.avgRating.toFixed(2) : '-'}

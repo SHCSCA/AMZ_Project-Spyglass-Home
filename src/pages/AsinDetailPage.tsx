@@ -24,18 +24,18 @@ import NegativeReviewsList from '../components/NegativeReviewsList';
 import HistoryDataTable from '../components/HistoryDataTable';
 
 async function fetchHistory(
-  id: string,
+  asin: string,
   range: string,
   page: number,
   size: number
 ): Promise<PageResponse<AsinHistoryPoint>> {
   const raw = await apiRequest<unknown>(
-    `/api/asin/${id}/history?range=${range}&page=${page}&size=${size}`
+    `/api/asin/by-code/${asin}/history?range=${range}&page=${page}&size=${size}`
   );
   return ensurePageResponse<AsinHistoryPoint>(raw, page, size);
 }
 async function fetchAsinAlerts(
-  id: string,
+  asin: string,
   page: number,
   size: number,
   type?: string,
@@ -46,16 +46,16 @@ async function fetchAsinAlerts(
   if (type) q.set('type', type);
   if (from) q.set('from', from);
   if (to) q.set('to', to);
-  const raw = await apiRequest<unknown>(`/api/asin/${id}/alerts?${q.toString()}`);
+  const raw = await apiRequest<unknown>(`/api/asin/by-code/${asin}/alerts?${q.toString()}`);
   return ensurePageResponse<AlertLogResponse>(raw, page, size);
 }
 async function fetchNegativeReviews(
-  id: string,
+  asin: string,
   page: number,
   size: number
 ): Promise<PageResponse<ReviewAlertResponse>> {
   const raw = await apiRequest<unknown>(
-    `/api/asin/${id}/reviews?rating=negative&page=${page}&size=${size}`
+    `/api/asin/by-code/${asin}/reviews?rating=negative&page=${page}&size=${size}`
   );
   return ensurePageResponse<ReviewAlertResponse>(raw, page, size);
 }
@@ -68,7 +68,7 @@ const ranges = [
 ];
 
 const AsinDetailPage: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+  const { asin } = useParams<{ asin: string }>();
   const [range, setRange] = useState('30d');
   const [historyPage] = useState(1); // 当前未实现翻页，保留值以兼容未来扩展
   const historyPageSize = 200; // 拉较大窗口用于图表
@@ -77,8 +77,8 @@ const AsinDetailPage: React.FC = () => {
     loading,
     error,
   } = useFetch(
-    () => fetchHistory(id!, range, historyPage - 1, historyPageSize),
-    [id, range, historyPage]
+    () => fetchHistory(asin!, range, historyPage - 1, historyPageSize),
+    [asin, range, historyPage]
   );
   const [alertPage, setAlertPage] = useState(1);
   const alertPageSize = 20;
@@ -92,14 +92,14 @@ const AsinDetailPage: React.FC = () => {
   } = useFetch(
     () =>
       fetchAsinAlerts(
-        id!,
+        asin!,
         alertPage - 1,
         alertPageSize,
         alertType,
         fromDate ? fromDate.toISOString() : undefined,
         toDate ? toDate.toISOString() : undefined
       ),
-    [id, alertPage, alertType, fromDate, toDate]
+    [asin, alertPage, alertType, fromDate, toDate]
   );
   const [reviewPage, setReviewPage] = useState(1);
   const reviewPageSize = 20;
@@ -107,21 +107,24 @@ const AsinDetailPage: React.FC = () => {
     data: reviewsResp,
     loading: loadingReviews,
     error: errorReviews,
-  } = useFetch(() => fetchNegativeReviews(id!, reviewPage - 1, reviewPageSize), [id, reviewPage]);
+  } = useFetch(
+    () => fetchNegativeReviews(asin!, reviewPage - 1, reviewPageSize),
+    [asin, reviewPage]
+  );
 
   // ⚠️ 所有 Hooks (useMemo) 必须在条件返回之前调用
   // 否则会违反 React Hooks 规则导致 #310 错误
   const historyPoints: HistoryPoint[] = useMemo(() => {
-    if (!historyResp) return [];  // 添加空值检查
+    if (!historyResp) return []; // 添加空值检查
     try {
       const pts = (historyResp.items || []).map(mapHistoryPoint);
-      logInfo('asin_detail_history_loaded', { id, count: pts.length, range });
+      logInfo('asin_detail_history_loaded', { asin, count: pts.length, range });
       return pts;
     } catch (e) {
-      logError('asin_detail_history_map_failed', { id, error: String(e) });
+      logError('asin_detail_history_map_failed', { asin, error: String(e) });
       return [];
     }
-  }, [historyResp, id, range]);
+  }, [historyResp, asin, range]);
 
   const priceSeries = useMemo(
     () => historyPoints.filter((p) => p.price !== undefined),
@@ -136,37 +139,7 @@ const AsinDetailPage: React.FC = () => {
     [historyPoints]
   );
 
-  const latest = historyPoints[historyPoints.length - 1];
-  const avgPrice = useMemo(() => {
-    try {
-      const arr = priceSeries.filter((p) => typeof p.price === 'number').map((p) => p.price!);
-      const v = arr.length ? (arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(2) : '-';
-      return v;
-    } catch (e) {
-      logError('asin_detail_avg_price_failed', { error: String(e) });
-      return '-';
-    }
-  }, [priceSeries]);
-  const avgBsr = useMemo(() => {
-    try {
-      const arr = bsrSeries.filter((p) => typeof p.bsr === 'number').map((p) => p.bsr!);
-      return arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : '-';
-    } catch (e) {
-      logError('asin_detail_avg_bsr_failed', { error: String(e) });
-      return '-';
-    }
-  }, [bsrSeries]);
-  const avgInv = useMemo(() => {
-    try {
-      const arr = inventorySeries
-        .filter((p) => typeof p.inventory === 'number')
-        .map((p) => p.inventory!);
-      return arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : '-';
-    } catch (e) {
-      logError('asin_detail_avg_inventory_failed', { error: String(e) });
-      return '-';
-    }
-  }, [inventorySeries]);
+  const latest = historyResp?.items?.[historyResp.items.length - 1];
 
   const debugDisableCharts =
     typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('debugCharts');
@@ -212,7 +185,10 @@ const AsinDetailPage: React.FC = () => {
           },
         },
         grid: { left: 50, right: 20, top: 50, bottom: 60 },
-        xAxis: { type: 'category' as const, data: points.map((p) => p.timestamp) },
+        xAxis: {
+          type: 'category' as const,
+          data: points.map((p) => dayjs(p.timestamp).format('YYYY-MM-DD HH:mm')),
+        },
         yAxis: { type: 'value' as const, name: valueName, scale: true },
         dataZoom: [
           { type: 'inside', throttle: 50 },
@@ -251,16 +227,11 @@ const AsinDetailPage: React.FC = () => {
 
   return (
     <div>
-      <h2 style={{ marginBottom: 16 }}>ASIN 详情 #{id}</h2>
+      <h2 style={{ marginBottom: 16 }}>ASIN 详情: {asin}</h2>
       <Row gutter={16} style={{ marginBottom: 16 }}>
         <Col span={6}>
           <Card>
-            <Statistic title="当前价格" value={latest?.price ?? '-'} />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic title="平均价格" value={avgPrice} />
+            <Statistic title="当前价格" value={latest?.price ?? '-'} prefix="$" />
           </Card>
         </Col>
         <Col span={6}>
@@ -270,17 +241,16 @@ const AsinDetailPage: React.FC = () => {
         </Col>
         <Col span={6}>
           <Card>
-            <Statistic title="平均BSR" value={avgBsr} />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card style={{ marginTop: 16 }}>
             <Statistic title="当前库存" value={latest?.inventory ?? '-'} />
           </Card>
         </Col>
         <Col span={6}>
-          <Card style={{ marginTop: 16 }}>
-            <Statistic title="平均库存" value={avgInv} />
+          <Card>
+            <Statistic
+              title="BSR小类排名"
+              value={latest?.bsrSubcategoryRank ?? '-'}
+              suffix={latest?.bsrSubcategory ? `(${latest.bsrSubcategory})` : ''}
+            />
           </Card>
         </Col>
       </Row>

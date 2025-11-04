@@ -132,7 +132,7 @@ const DashboardPage: React.FC = () => {
         const hasNewAlert = alertItems.some((a) => a.asinId === record.id && a.status === 'NEW');
         return (
           <Badge dot={hasNewAlert} offset={[0, 0]}>
-            <Button type="link" onClick={() => navigate(`/asin/${record.id}`)}>
+            <Button type="link" onClick={() => navigate(`/asin/${record.asin}`)}>
               {record.nickname || record.asin}
             </Button>
           </Badge>

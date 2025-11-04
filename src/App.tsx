@@ -57,16 +57,20 @@ const App: React.FC = () => {
 
   useEffect(() => {
     fetch('/version.json')
-      .then(r => r.json())
-      .then(v => {
+      .then((r) => r.json())
+      .then((v) => {
         if (mountedRef.current) setVersion(v);
       })
       .catch(() => {});
   }, []);
 
   useEffect(() => {
-    const handlerError = (e: ErrorEvent) => { logError('window_error', { message: e.message, filename: e.filename, lineno: e.lineno }); };
-    const handlerRejection = (e: PromiseRejectionEvent) => { logError('unhandled_rejection', { reason: String(e.reason) }); };
+    const handlerError = (e: ErrorEvent) => {
+      logError('window_error', { message: e.message, filename: e.filename, lineno: e.lineno });
+    };
+    const handlerRejection = (e: PromiseRejectionEvent) => {
+      logError('unhandled_rejection', { reason: String(e.reason) });
+    };
     window.addEventListener('error', handlerError);
     window.addEventListener('unhandledrejection', handlerRejection);
     return () => {
@@ -80,10 +84,24 @@ const App: React.FC = () => {
         <AppSidebar />
       </Sider>
       <Layout>
-        <Header style={{ background: '#fff', padding: '0 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Header
+          style={{
+            background: '#fff',
+            padding: '0 16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
           <Space>
-            <Typography.Title level={4} style={{ margin: 0 }}>Spyglass 情报系统</Typography.Title>
-            {version && <Typography.Text type="secondary">commit:{version.version} build:{version.buildTime}</Typography.Text>}
+            <Typography.Title level={4} style={{ margin: 0 }}>
+              Spyglass 情报系统
+            </Typography.Title>
+            {version && (
+              <Typography.Text type="secondary">
+                commit:{version.version} build:{version.buildTime}
+              </Typography.Text>
+            )}
           </Space>
           <Space>
             <Button onClick={() => setOpenLogs(true)}>查看日志</Button>
@@ -96,12 +114,14 @@ const App: React.FC = () => {
                 <Route path="/" element={<Navigate to="/alerts" replace />} />
                 <Route path="/alerts" element={<AlertsPage />} />
                 <Route path="/dashboard" element={<DashboardPage />} />
-                <Route path="/asin/:id" element={<AsinDetailPage />} />
+                <Route path="/asin/:asin" element={<AsinDetailPage />} />
               </Routes>
             </Suspense>
           </ErrorBoundary>
         </Content>
-        <Footer style={{ textAlign: 'center' }}>© {new Date().getFullYear()} Spyglass 前端 · 数据来源后端 API</Footer>
+        <Footer style={{ textAlign: 'center' }}>
+          © {new Date().getFullYear()} Spyglass 前端 · 数据来源后端 API
+        </Footer>
       </Layout>
       <LogViewer open={openLogs} onClose={() => setOpenLogs(false)} />
     </Layout>
