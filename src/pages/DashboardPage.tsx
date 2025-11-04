@@ -25,7 +25,7 @@ async function fetchAsins(page: number, size: number): Promise<PageResponse<Asin
   return ensurePageResponse<AsinResponse>(raw, page, size);
 }
 async function fetchAlerts(): Promise<PageResponse<AlertLogResponse>> {
-  const raw = await apiRequest<unknown>('/api/alerts?page=0&size=500'); // 拉取较多用于红点判断
+  const raw = await apiRequest<unknown>('/api/alerts?page=0&size=200'); // 拉取较多用于红点判断
   return ensurePageResponse<AlertLogResponse>(raw, 0, 500);
 }
 
