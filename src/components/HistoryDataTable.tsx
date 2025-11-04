@@ -38,7 +38,7 @@ const HistoryDataTable: React.FC<HistoryDataTableProps> = ({ data, loading }) =>
       title: '价格',
       dataIndex: 'price',
       width: 100,
-      render: (price: number) => (price !== undefined ? `$${price.toFixed(2)}` : '-'),
+      render: (price: number) => (price != null ? `$${price.toFixed(2)}` : '-'),
     },
     {
       title: 'BSR排名',
@@ -62,7 +62,7 @@ const HistoryDataTable: React.FC<HistoryDataTableProps> = ({ data, loading }) =>
       title: '评分',
       dataIndex: 'avgRating',
       width: 80,
-      render: (rating: number) => rating?.toFixed(1) || '-',
+      render: (rating: number) => (rating != null ? rating.toFixed(1) : '-'),
     },
     {
       title: '评论数',
@@ -113,7 +113,7 @@ const HistoryDataTable: React.FC<HistoryDataTableProps> = ({ data, loading }) =>
               {dayjs(selectedRecord.snapshotAt).format('YYYY-MM-DD HH:mm:ss')}
             </Descriptions.Item>
             <Descriptions.Item label="价格">
-              {selectedRecord.price !== undefined ? `$${selectedRecord.price.toFixed(2)}` : '-'}
+              {selectedRecord.price != null ? `$${selectedRecord.price.toFixed(2)}` : '-'}
             </Descriptions.Item>
             <Descriptions.Item label="库存">{selectedRecord.inventory ?? '-'}</Descriptions.Item>
             <Descriptions.Item label="BSR排名">
@@ -123,7 +123,7 @@ const HistoryDataTable: React.FC<HistoryDataTableProps> = ({ data, loading }) =>
               {selectedRecord.bsrCategory || '-'}
             </Descriptions.Item>
             <Descriptions.Item label="评分">
-              {selectedRecord.avgRating?.toFixed(2) || '-'}
+              {selectedRecord.avgRating != null ? selectedRecord.avgRating.toFixed(2) : '-'}
             </Descriptions.Item>
             <Descriptions.Item label="评论数">
               {selectedRecord.totalReviews?.toLocaleString() || '-'}
