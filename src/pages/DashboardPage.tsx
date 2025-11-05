@@ -13,40 +13,35 @@ import {
   Select,
 } from 'antd';
 import { SettingOutlined } from '@ant-design/icons';
+import { AsinItem, AlertItem, PageResponse, AlertLogResponse } from '../types';
+import {
+  fetchAsins,
+  createAsin,
+  updateAsin,
+  deleteAsin,
+  CreateAsinDto,
+  UpdateAsinDto,
+} from '../api/asinApi';
+import { fetchGroups, GroupResponse } from '../api/groupApi';
 import { apiRequest } from '../api/client';
-import { AsinItem, PageResponse, AsinResponse, AlertLogResponse, AlertItem } from '../types';
 import { ensurePageResponse } from '../api/adapters';
-import { mapAsin, mapAlertLog, fetchGroups, GroupResponse } from '../api';
+import { mapAlertLog } from '../api/mappers';
 import Loading from '../components/Loading';
 import ErrorMessage from '../components/ErrorMessage';
 import GroupManageModal from '../components/GroupManageModal';
 import { useFetch } from '../hooks/useFetch';
 import { useNavigate } from 'react-router-dom';
 
-async function fetchAsins(
-  page: number,
-  size: number,
-  groupId?: number
-): Promise<PageResponse<AsinResponse>> {
-  const params = new URLSearchParams({
-    page: page.toString(),
-    size: size.toString(),
-  });
-  if (groupId !== undefined && groupId !== null && groupId !== -1) {
-    params.append('groupId', groupId.toString());
-  }
-  const raw = await apiRequest<unknown>(`/api/asin?${params}`);
-  return ensurePageResponse<AsinResponse>(raw, page, size);
-}
-async function fetchAlerts(): Promise<PageResponse<AlertLogResponse>> {
-  const raw = await apiRequest<unknown>('/api/alerts?page=0&size=200'); // 拉取较多用于红点判断
-  return ensurePageResponse<AlertLogResponse>(raw, 0, 500);
+// 获取告警列表
+async function fetchAlertsList(): Promise<PageResponse<AlertLogResponse>> {
+  const raw = await apiRequest<unknown>('/api/alerts?page=0&size=200');
+  return ensurePageResponse<AlertLogResponse>(raw, 0, 200);
 }
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
-  const [selectedGroupId, setSelectedGroupId] = useState<number>(-1); // -1表示全部
+  const [selectedGroupId, setSelectedGroupId] = useState<number | undefined>(undefined);
   const pageSize = 20;
   const mountedRef = useRef(true);
 
@@ -61,17 +56,17 @@ const DashboardPage: React.FC = () => {
     () => fetchAsins(page - 1, pageSize, selectedGroupId),
     [page, selectedGroupId]
   );
-  const { data: alertsResp } = useFetch(fetchAlerts, []);
+  const { data: alertsResp } = useFetch(fetchAlertsList, []);
   const { data: groupsResp, reload: reloadGroups } = useFetch(() => fetchGroups(0, 100), []);
   const [openAdd, setOpenAdd] = useState(false);
   const [openEdit, setOpenEdit] = useState<AsinItem | null>(null);
   const [openGroupManage, setOpenGroupManage] = useState(false);
-  const [form] = Form.useForm<Partial<AsinItem>>();
+  const [form] = Form.useForm<Partial<CreateAsinDto>>();
 
   const handleAdd = async () => {
     try {
       const values = await form.validateFields();
-      await apiRequest('/api/asin', { method: 'POST', body: JSON.stringify(values) });
+      await createAsin(values as CreateAsinDto);
       if (!mountedRef.current) return;
       setOpenAdd(false);
       form.resetFields();
@@ -86,10 +81,7 @@ const DashboardPage: React.FC = () => {
     if (!openEdit) return;
     try {
       const values = await form.validateFields();
-      await apiRequest(`/api/asin/${openEdit.id}/config`, {
-        method: 'PUT',
-        body: JSON.stringify(values),
-      });
+      await updateAsin(openEdit.id, values as UpdateAsinDto);
       if (!mountedRef.current) return;
       setOpenEdit(null);
       form.resetFields();
@@ -102,7 +94,7 @@ const DashboardPage: React.FC = () => {
 
   const handleDelete = async (record: AsinItem) => {
     try {
-      await apiRequest(`/api/asin/${record.id}`, { method: 'DELETE' });
+      await deleteAsin(record.id);
       if (!mountedRef.current) return;
       reload();
     } catch (err) {
@@ -114,11 +106,11 @@ const DashboardPage: React.FC = () => {
   if (loading) return <Loading />;
   if (error) return <ErrorMessage error={error} />;
 
-  const asinRows: AsinItem[] = (data?.items || []).map(mapAsin);
+  const asinRows: AsinItem[] = data?.items || [];
   const alertItems: AlertItem[] = (alertsResp?.items || []).map(mapAlertLog);
   const groupOptions = [
-    { label: '全部分组', value: -1 },
-    ...((groupsResp?.items || []) as GroupResponse[]).map((g) => ({
+    { label: '全部分组', value: undefined },
+    ...(groupsResp?.items || []).map((g: GroupResponse) => ({
       label: g.name,
       value: g.id,
     })),

@@ -21,17 +21,16 @@ export interface AsinResponse {
   groupName?: string;
   createdAt?: string;
   updatedAt?: string;
-}
-
-// 兼容旧命名，供现有组件逐步迁移；后续可直接用 AsinResponse 并做聚合扩展
-export interface AsinItem extends AsinResponse {
-  // 聚合的最新快照指标（后端暂未直接提供，前端可能需要单独 API 获取或后端未来扩展）
+  // 聚合的最新快照指标
   lastPrice?: number;
   lastBsr?: number;
   lastInventory?: number;
   totalReviews?: number;
   avgRating?: number;
 }
+
+// 兼容旧命名，供现有组件逐步迁移；后续可直接用 AsinResponse 并做聚合扩展
+export interface AsinItem extends AsinResponse {}
 
 // 告警日志（AlertLogResponse）
 export interface AlertLogResponse {

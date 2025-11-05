@@ -5,7 +5,6 @@ import { Layout, Spin, Button, Space, Typography } from 'antd';
 import AppSidebar from './components/AppSidebar';
 import LogViewer from './components/LogViewer';
 
-const AlertsPage = lazy(() => import('./pages/AlertsPage'));
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const AsinDetailPage = lazy(() => import('./pages/AsinDetailPage'));
 
@@ -111,8 +110,7 @@ const App: React.FC = () => {
           <ErrorBoundary>
             <Suspense fallback={<Spin />}>
               <Routes>
-                <Route path="/" element={<Navigate to="/alerts" replace />} />
-                <Route path="/alerts" element={<AlertsPage />} />
+                <Route path="/" element={<Navigate to="/dashboard" replace />} />
                 <Route path="/dashboard" element={<DashboardPage />} />
                 <Route path="/asin/:asin" element={<AsinDetailPage />} />
               </Routes>

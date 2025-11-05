@@ -191,10 +191,6 @@ const AsinDetailPage: React.FC = () => {
     () => historyPoints.filter((p) => p.bsr !== undefined),
     [historyPoints]
   );
-  const inventorySeries = useMemo(
-    () => historyPoints.filter((p) => p.inventory !== undefined),
-    [historyPoints]
-  );
 
   const latest = historyResp?.items?.[historyResp.items.length - 1];
 
@@ -357,17 +353,6 @@ const AsinDetailPage: React.FC = () => {
               'BSR趋势',
               bsrSeries.map((p) => ({ timestamp: p.timestamp, value: p.bsr })),
               'BSR'
-            )}
-          />
-        )}
-        {debugDisableCharts ? (
-          <div>图表已禁用 (debugCharts)</div>
-        ) : (
-          <ReactECharts
-            option={buildLineOption(
-              '库存趋势',
-              inventorySeries.map((p) => ({ timestamp: p.timestamp, value: p.inventory })),
-              '库存'
             )}
           />
         )}
