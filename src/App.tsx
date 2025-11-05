@@ -7,6 +7,7 @@ import LogViewer from './components/LogViewer';
 
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const AsinDetailPage = lazy(() => import('./pages/AsinDetailPage'));
+const GroupsPage = lazy(() => import('./pages/GroupsPage'));
 
 const { Sider, Content, Header, Footer } = Layout;
 
@@ -112,6 +113,7 @@ const App: React.FC = () => {
               <Routes>
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
                 <Route path="/dashboard" element={<DashboardPage />} />
+                <Route path="/groups" element={<GroupsPage />} />
                 <Route path="/asin/:asin" element={<AsinDetailPage />} />
               </Routes>
             </Suspense>

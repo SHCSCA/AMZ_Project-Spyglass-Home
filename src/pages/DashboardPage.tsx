@@ -12,7 +12,6 @@ import {
   Tag,
   Select,
 } from 'antd';
-import { SettingOutlined } from '@ant-design/icons';
 import { AsinItem, AlertItem, PageResponse, AlertLogResponse } from '../types';
 import {
   fetchAsins,
@@ -28,7 +27,6 @@ import { ensurePageResponse } from '../api/adapters';
 import { mapAlertLog } from '../api/mappers';
 import Loading from '../components/Loading';
 import ErrorMessage from '../components/ErrorMessage';
-import GroupManageModal from '../components/GroupManageModal';
 import { useFetch } from '../hooks/useFetch';
 import { useNavigate } from 'react-router-dom';
 
@@ -57,10 +55,9 @@ const DashboardPage: React.FC = () => {
     [page, selectedGroupId]
   );
   const { data: alertsResp } = useFetch(fetchAlertsList, []);
-  const { data: groupsResp, reload: reloadGroups } = useFetch(() => fetchGroups(0, 100), []);
+  const { data: groupsResp } = useFetch(() => fetchGroups(0, 100), []);
   const [openAdd, setOpenAdd] = useState(false);
   const [openEdit, setOpenEdit] = useState<AsinItem | null>(null);
-  const [openGroupManage, setOpenGroupManage] = useState(false);
   const [form] = Form.useForm<Partial<CreateAsinDto>>();
 
   const handleAdd = async () => {
@@ -189,9 +186,6 @@ const DashboardPage: React.FC = () => {
         >
           添加ASIN
         </Button>
-        <Button icon={<SettingOutlined />} onClick={() => setOpenGroupManage(true)}>
-          管理分组
-        </Button>
       </Space>
       <Table
         rowKey="id"
@@ -263,16 +257,6 @@ const DashboardPage: React.FC = () => {
           </Form.Item>
         </Form>
       </Modal>
-
-      {/* 分组管理Modal */}
-      <GroupManageModal
-        open={openGroupManage}
-        onClose={() => setOpenGroupManage(false)}
-        onGroupChange={() => {
-          reloadGroups(); // 刷新分组列表
-          reload(); // 刷新ASIN列表(groupName可能变化)
-        }}
-      />
     </div>
   );
 };
