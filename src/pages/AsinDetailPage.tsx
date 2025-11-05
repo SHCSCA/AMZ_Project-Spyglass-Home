@@ -191,6 +191,14 @@ const AsinDetailPage: React.FC = () => {
     () => historyPoints.filter((p) => p.bsr !== undefined),
     [historyPoints]
   );
+  // 新增: 小类BSR排名趋势
+  const bsrSubcategorySeries = useMemo(
+    () =>
+      historyResp?.items
+        ?.filter((p) => p.bsrSubcategoryRank !== undefined && p.bsrSubcategoryRank !== null)
+        .map((p) => ({ timestamp: p.snapshotAt, value: p.bsrSubcategoryRank })) ?? [],
+    [historyResp]
+  );
 
   const latest = historyResp?.items?.[historyResp.items.length - 1];
 
@@ -354,6 +362,13 @@ const AsinDetailPage: React.FC = () => {
               bsrSeries.map((p) => ({ timestamp: p.timestamp, value: p.bsr })),
               'BSR'
             )}
+          />
+        )}
+        {debugDisableCharts ? (
+          <div>图表已禁用 (debugCharts)</div>
+        ) : (
+          <ReactECharts
+            option={buildLineOption('小类BSR排名趋势', bsrSubcategorySeries, '小类BSR排名')}
           />
         )}
       </div>

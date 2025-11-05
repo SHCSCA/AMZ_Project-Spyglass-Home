@@ -175,6 +175,12 @@ const HistoryDataTable: React.FC<HistoryDataTableProps> = ({ data, loading }) =>
       defaultSortOrder: 'ascend',
     },
     {
+      title: '小类BSR排名',
+      dataIndex: 'bsrSubcategoryRank',
+      width: 120,
+      render: (rank: number) => (rank != null ? rank.toLocaleString() : '-'),
+    },
+    {
       title: '价格',
       dataIndex: 'price',
       width: 120,

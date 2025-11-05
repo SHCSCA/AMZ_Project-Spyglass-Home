@@ -10,13 +10,14 @@ services:
       context: .
       args:
         # 构建时注入（静态编译进 bundle）
-        VITE_API_BASE_URL: ${VITE_API_BASE_URL-/api}
-        APP_BUILD_TIME: ${APP_BUILD_TIME-$(date +%Y%m%d%H%M%S)}
-        GIT_COMMIT: ${GIT_COMMIT-unknown}
-    image: spyglass-frontend:latest
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api}
+        APP_BUILD_TIME: ${APP_BUILD_TIME}
+        GIT_COMMIT: ${GIT_COMMIT:-unknown}
+    image: spyglass-frontend:${APP_VERSION:-latest}
+    container_name: spyglass-frontend
     ports:
       # 将宿主机 FRONTEND_PORT (默认 8082) 映射到容器 80 (Nginx)
-      - "${FRONTEND_PORT-8082}:80"
+      - "${FRONTEND_PORT:-8082}:80"
     environment: *env_defaults
     restart: unless-stopped
     healthcheck:
@@ -29,11 +30,8 @@ services:
       - spyglass-net
     labels:
       com.spyglass.role: frontend
-      com.spyglass.api-base: ${VITE_API_BASE_URL-/api}
+      com.spyglass.api-base: ${VITE_API_BASE_URL:-/api}
     depends_on: []
-    # 如果需要让 Nginx 直接代理 /api 到后端，可在此扩展 backend 服务并替换 nginx.conf
-    # volumes:
-    #   - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
 
 networks:
   spyglass-net:
