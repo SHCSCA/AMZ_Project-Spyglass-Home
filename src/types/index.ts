@@ -24,6 +24,7 @@ export interface AsinResponse {
   // 聚合的最新快照指标
   lastPrice?: number;
   lastBsr?: number;
+  lastBsrSubcategoryRank?: number;
   lastInventory?: number;
   totalReviews?: number;
   avgRating?: number;

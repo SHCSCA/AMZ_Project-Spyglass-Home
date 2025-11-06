@@ -84,7 +84,7 @@ const DashboardPage: React.FC = () => {
               ...row,
               lastPrice: latest.price,
               lastBsr: latest.bsr,
-              lastInventory: latest.inventory,
+              lastBsrSubcategoryRank: latest.bsrSubcategoryRank,
               totalReviews: latest.totalReviews,
               avgRating: latest.avgRating,
             };
@@ -191,10 +191,9 @@ const DashboardPage: React.FC = () => {
     },
     { title: '最新价格', dataIndex: 'lastPrice' },
     { title: '最新BSR', dataIndex: 'lastBsr' },
-    { title: '最新库存', dataIndex: 'lastInventory' },
+    { title: '小类BSR', dataIndex: 'lastBsrSubcategoryRank', render: (v: number) => v ?? '-' },
     { title: '评论数', dataIndex: 'totalReviews' },
     { title: '评分', dataIndex: 'avgRating' },
-    { title: '库存阈值', dataIndex: 'inventoryThreshold' },
     {
       title: '操作',
       render: (_: unknown, record: AsinItem) => (
