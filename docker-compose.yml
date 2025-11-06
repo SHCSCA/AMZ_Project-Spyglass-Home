@@ -1,7 +1,7 @@
 version: '3.8'
 
 x-environment-defaults: &env_defaults
-  VITE_API_BASE_URL: ${VITE_API_BASE_URL-/api}
+  VITE_API_BASE_URL: ${VITE_API_BASE_URL:-}
   APP_VERSION: ${APP_VERSION-latest}
 
 services:
@@ -9,8 +9,8 @@ services:
     build:
       context: .
       args:
-        # 构建时注入（静态编译进 bundle）
-        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api}
+        # 构建时注入（静态编译进 bundle）- 默认留空使用相对路径
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-}
         APP_BUILD_TIME: ${APP_BUILD_TIME}
         GIT_COMMIT: ${GIT_COMMIT:-unknown}
     image: spyglass-frontend:${APP_VERSION:-latest}

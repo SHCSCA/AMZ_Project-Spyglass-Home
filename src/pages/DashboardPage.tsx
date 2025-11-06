@@ -44,6 +44,10 @@ const DashboardPage: React.FC = () => {
   const pageSize = 20;
   const mountedRef = useRef(true);
 
+  // 聚合后的行（带最新快照字段）- 移到顶部避免 Hooks 顺序问题
+  const [enrichedRows, setEnrichedRows] = useState<AsinItem[]>([]);
+  const [loadingSnapshots, setLoadingSnapshots] = useState(false);
+
   useEffect(() => {
     mountedRef.current = true;
     return () => {
@@ -60,6 +64,45 @@ const DashboardPage: React.FC = () => {
   const [openAdd, setOpenAdd] = useState(false);
   const [openEdit, setOpenEdit] = useState<AsinItem | null>(null);
   const [form] = Form.useForm<Partial<CreateAsinDto>>();
+
+  // useEffect 处理聚合快照数据
+  useEffect(() => {
+    const asinRows: AsinItem[] = data?.items || [];
+    let cancelled = false;
+    async function enrich() {
+      if (!asinRows.length) {
+        if (!cancelled && mountedRef.current) setEnrichedRows([]);
+        return;
+      }
+      if (!cancelled && mountedRef.current) setLoadingSnapshots(true);
+      try {
+        const results = await Promise.all(
+          asinRows.map(async (row) => {
+            const latest = await fetchLatestSnapshot(row.id);
+            if (!latest) return row; // 无快照则保持原始行
+            return {
+              ...row,
+              lastPrice: latest.price,
+              lastBsr: latest.bsr,
+              lastInventory: latest.inventory,
+              totalReviews: latest.totalReviews,
+              avgRating: latest.avgRating,
+            };
+          })
+        );
+        if (!cancelled && mountedRef.current) setEnrichedRows(results);
+      } catch (err) {
+        console.error('Enrich snapshots failed:', err);
+        if (!cancelled && mountedRef.current) setEnrichedRows(asinRows); // 失败时回退原始数据
+      } finally {
+        if (!cancelled && mountedRef.current) setLoadingSnapshots(false);
+      }
+    }
+    enrich();
+    return () => {
+      cancelled = true;
+    };
+  }, [data]);
 
   const handleAdd = async () => {
     try {
@@ -102,47 +145,18 @@ const DashboardPage: React.FC = () => {
   };
 
   if (loading) return <Loading />;
-  if (error) return <ErrorMessage error={error} />;
+  if (error)
+    return (
+      <div>
+        <ErrorMessage error={error} />
+        <div style={{ marginTop: 12, fontSize: 12, color: '#999' }}>
+          如果看到跨域(CORS)相关错误，请确认生产部署已使用相对路径构建（VITE_API_BASE_URL
+          为空或同源），并由 nginx 反向代理 /api。
+        </div>
+      </div>
+    );
 
   const asinRows: AsinItem[] = data?.items || [];
-
-  // 聚合后的行（带最新快照字段）
-  const [enrichedRows, setEnrichedRows] = useState<AsinItem[]>([]);
-  const [loadingSnapshots, setLoadingSnapshots] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    async function enrich() {
-      if (!asinRows.length) {
-        setEnrichedRows([]);
-        return;
-      }
-      setLoadingSnapshots(true);
-      try {
-        const results = await Promise.all(
-          asinRows.map(async (row) => {
-            const latest = await fetchLatestSnapshot(row.id);
-            if (!latest) return row; // 无快照则保持原始行
-            return {
-              ...row,
-              lastPrice: latest.price,
-              lastBsr: latest.bsr,
-              lastInventory: latest.inventory,
-              totalReviews: latest.totalReviews,
-              avgRating: latest.avgRating,
-            };
-          })
-        );
-        if (!cancelled) setEnrichedRows(results);
-      } finally {
-        if (!cancelled) setLoadingSnapshots(false);
-      }
-    }
-    enrich();
-    return () => {
-      cancelled = true;
-    };
-  }, [asinRows]);
   const alertItems: AlertItem[] = (alertsResp?.items || []).map(mapAlertLog);
   const groupOptions = [
     { label: '全部分组', value: undefined },
