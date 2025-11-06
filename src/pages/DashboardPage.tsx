@@ -265,31 +265,44 @@ const DashboardPage: React.FC = () => {
         }}
       />
 
-      <Modal title="添加ASIN" open={openAdd} onOk={handleAdd} onCancel={() => setOpenAdd(false)}>
+      <Modal
+        title="添加ASIN"
+        open={openAdd}
+        onOk={handleAdd}
+        onCancel={() => {
+          setOpenAdd(false);
+          form.resetFields();
+        }}
+      >
         <Form form={form} layout="vertical">
-          <Form.Item name="asin" label="ASIN" rules={[{ required: true }]}>
-            {' '}
-            <Input />{' '}
+          <Form.Item
+            name="asin"
+            label="ASIN 码"
+            rules={[
+              { required: true, message: '请输入 ASIN 码' },
+              { pattern: /^[A-Z0-9]{10}$/, message: 'ASIN 码必须是10位字母数字组合' },
+            ]}
+          >
+            <Input placeholder="例如：B08N5WRWNW" />
           </Form.Item>
-          <Form.Item name="site" label="站点" rules={[{ required: true }]}>
-            {' '}
-            <Input />{' '}
+          <Form.Item name="site" label="站点" rules={[{ required: true, message: '请输入站点' }]}>
+            <Input placeholder="例如：US, UK, DE, JP" />
           </Form.Item>
-          <Form.Item name="nickname" label="昵称">
-            {' '}
-            <Input />{' '}
+          <Form.Item name="nickname" label="昵称（可选）">
+            <Input placeholder="为该 ASIN 设置一个易记的名称" />
           </Form.Item>
-          <Form.Item name="inventoryThreshold" label="库存阈值">
-            {' '}
-            <InputNumber style={{ width: '100%' }} />{' '}
+          <Form.Item name="brand" label="品牌（可选）">
+            <Input placeholder="品牌名称" />
           </Form.Item>
-          <Form.Item name="brand" label="品牌">
-            {' '}
-            <Input />{' '}
+          <Form.Item name="groupId" label="所属分组（可选）">
+            <Select
+              placeholder="选择分组"
+              allowClear
+              options={groupOptions.filter((g) => g.value !== undefined)}
+            />
           </Form.Item>
-          <Form.Item name="groupId" label="分组ID">
-            {' '}
-            <InputNumber style={{ width: '100%' }} />{' '}
+          <Form.Item name="inventoryThreshold" label="库存阈值（可选）">
+            <InputNumber style={{ width: '100%' }} min={0} placeholder="低于此值将触发告警" />
           </Form.Item>
         </Form>
       </Modal>
@@ -298,28 +311,27 @@ const DashboardPage: React.FC = () => {
         title="编辑ASIN"
         open={!!openEdit}
         onOk={handleEdit}
-        onCancel={() => setOpenEdit(null)}
+        onCancel={() => {
+          setOpenEdit(null);
+          form.resetFields();
+        }}
       >
         <Form form={form} layout="vertical">
-          <Form.Item name="site" label="站点" rules={[{ required: true }]}>
-            {' '}
-            <Input />{' '}
+          <Form.Item name="nickname" label="昵称（可选）">
+            <Input placeholder="为该 ASIN 设置一个易记的名称" />
           </Form.Item>
-          <Form.Item name="nickname" label="昵称">
-            {' '}
-            <Input />{' '}
+          <Form.Item name="brand" label="品牌（可选）">
+            <Input placeholder="品牌名称" />
           </Form.Item>
-          <Form.Item name="inventoryThreshold" label="库存阈值">
-            {' '}
-            <InputNumber style={{ width: '100%' }} />{' '}
+          <Form.Item name="groupId" label="所属分组（可选）">
+            <Select
+              placeholder="选择分组"
+              allowClear
+              options={groupOptions.filter((g) => g.value !== undefined)}
+            />
           </Form.Item>
-          <Form.Item name="brand" label="品牌">
-            {' '}
-            <Input />{' '}
-          </Form.Item>
-          <Form.Item name="groupId" label="分组ID">
-            {' '}
-            <InputNumber style={{ width: '100%' }} />{' '}
+          <Form.Item name="inventoryThreshold" label="库存阈值（可选）">
+            <InputNumber style={{ width: '100%' }} min={0} placeholder="低于此值将触发告警" />
           </Form.Item>
         </Form>
       </Modal>
