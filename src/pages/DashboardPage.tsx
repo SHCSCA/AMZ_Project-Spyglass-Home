@@ -11,6 +11,8 @@ import {
   Badge,
   Tag,
   Select,
+  message,
+  Empty,
 } from 'antd';
 import { AsinItem, AlertItem, PageResponse, AlertLogResponse } from '../types';
 import {
@@ -109,12 +111,14 @@ const DashboardPage: React.FC = () => {
       const values = await form.validateFields();
       await createAsin(values as CreateAsinDto);
       if (!mountedRef.current) return;
+      message.success('添加 ASIN 成功');
       setOpenAdd(false);
       form.resetFields();
       reload();
     } catch (err) {
       if (!mountedRef.current) return;
       console.error('Add ASIN failed:', err);
+      message.error('添加失败，请检查输入或稍后重试');
     }
   };
 
@@ -124,12 +128,14 @@ const DashboardPage: React.FC = () => {
       const values = await form.validateFields();
       await updateAsin(openEdit.id, values as UpdateAsinDto);
       if (!mountedRef.current) return;
+      message.success('更新 ASIN 成功');
       setOpenEdit(null);
       form.resetFields();
       reload();
     } catch (err) {
       if (!mountedRef.current) return;
       console.error('Edit ASIN failed:', err);
+      message.error('更新失败，请稍后重试');
     }
   };
 
@@ -137,24 +143,17 @@ const DashboardPage: React.FC = () => {
     try {
       await deleteAsin(record.id);
       if (!mountedRef.current) return;
+      message.success('删除 ASIN 成功');
       reload();
     } catch (err) {
       if (!mountedRef.current) return;
       console.error('Delete ASIN failed:', err);
+      message.error('删除失败，请稍后重试');
     }
   };
 
   if (loading) return <Loading />;
-  if (error)
-    return (
-      <div>
-        <ErrorMessage error={error} />
-        <div style={{ marginTop: 12, fontSize: 12, color: '#999' }}>
-          如果看到跨域(CORS)相关错误，请确认生产部署已使用相对路径构建（VITE_API_BASE_URL
-          为空或同源），并由 nginx 反向代理 /api。
-        </div>
-      </div>
-    );
+  if (error) return <ErrorMessage error={error} />;
 
   const asinRows: AsinItem[] = data?.items || [];
   const alertItems: AlertItem[] = (alertsResp?.items || []).map(mapAlertLog);
@@ -243,16 +242,28 @@ const DashboardPage: React.FC = () => {
         rowKey="id"
         dataSource={enrichedRows.length ? enrichedRows : asinRows}
         columns={columns}
+        loading={loadingSnapshots}
+        locale={{
+          emptyText: (
+            <Empty
+              description={selectedGroupId ? '该分组暂无 ASIN 数据' : '暂无 ASIN 数据'}
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+            >
+              <Button type="primary" onClick={() => setOpenAdd(true)}>
+                添加第一个 ASIN
+              </Button>
+            </Empty>
+          ),
+        }}
         pagination={{
           current: page,
           total: data?.total || 0,
           pageSize,
           onChange: (p) => setPage(p),
+          showSizeChanger: false,
+          showTotal: (total) => `共 ${total} 条记录`,
         }}
       />
-      {loadingSnapshots && (
-        <div style={{ marginTop: 8, fontSize: 12, color: '#999' }}>正在加载最新快照数据...</div>
-      )}
 
       <Modal title="添加ASIN" open={openAdd} onOk={handleAdd} onCancel={() => setOpenAdd(false)}>
         <Form form={form} layout="vertical">

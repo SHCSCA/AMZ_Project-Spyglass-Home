@@ -1,10 +1,11 @@
 import React from 'react';
 import { Menu } from 'antd';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { AppstoreOutlined, FolderOutlined } from '@ant-design/icons';
 
 const items = [
-  { key: '/dashboard', label: 'ASIN 仪表盘' },
-  { key: '/groups', label: '分组管理' },
+  { key: '/dashboard', label: 'ASIN 列表', icon: <AppstoreOutlined /> },
+  { key: '/groups', label: '分组管理', icon: <FolderOutlined /> },
 ];
 
 const AppSidebar: React.FC = () => {

@@ -11,12 +11,6 @@ const GroupsPage = lazy(() => import('./pages/GroupsPage'));
 
 const { Sider, Content, Header, Footer } = Layout;
 
-interface VersionInfo {
-  version: string;
-  buildTime: string;
-  apiBase: string;
-}
-
 class ErrorBoundary extends React.Component<
   { children: React.ReactNode },
   { error: Error | null }
@@ -45,7 +39,6 @@ class ErrorBoundary extends React.Component<
 
 const App: React.FC = () => {
   const [openLogs, setOpenLogs] = useState(false);
-  const [version, setVersion] = useState<VersionInfo | null>(null);
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -55,13 +48,9 @@ const App: React.FC = () => {
     };
   }, []);
 
+  // 静默加载版本信息（用于健康检查）
   useEffect(() => {
-    fetch('/version.json')
-      .then((r) => r.json())
-      .then((v) => {
-        if (mountedRef.current) setVersion(v);
-      })
-      .catch(() => {});
+    fetch('/version.json').catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -95,16 +84,13 @@ const App: React.FC = () => {
         >
           <Space>
             <Typography.Title level={4} style={{ margin: 0 }}>
-              Spyglass 情报系统
+              Amazon ASIN 监控系统
             </Typography.Title>
-            {version && (
-              <Typography.Text type="secondary">
-                commit:{version.version} build:{version.buildTime}
-              </Typography.Text>
-            )}
           </Space>
           <Space>
-            <Button onClick={() => setOpenLogs(true)}>查看日志</Button>
+            <Button size="small" type="text" onClick={() => setOpenLogs(true)}>
+              系统日志
+            </Button>
           </Space>
         </Header>
         <Content style={{ padding: '16px' }}>
@@ -119,8 +105,8 @@ const App: React.FC = () => {
             </Suspense>
           </ErrorBoundary>
         </Content>
-        <Footer style={{ textAlign: 'center' }}>
-          © {new Date().getFullYear()} Spyglass 前端 · 数据来源后端 API
+        <Footer style={{ textAlign: 'center', color: '#999', fontSize: 12 }}>
+          Amazon ASIN 监控系统 © {new Date().getFullYear()}
         </Footer>
       </Layout>
       <LogViewer open={openLogs} onClose={() => setOpenLogs(false)} />
