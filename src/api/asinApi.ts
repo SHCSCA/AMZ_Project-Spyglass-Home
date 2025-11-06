@@ -107,3 +107,31 @@ export async function deleteAsin(id: number): Promise<void> {
 export async function fetchAsinDetail(id: number): Promise<AsinResponse> {
   return apiRequest<AsinResponse>(`/api/asin/${id}`);
 }
+
+/**
+ * 获取最新的 ASIN 历史快照（用于仪表盘聚合）
+ * 策略：抓取一定数量的历史点（默认 50，范围 90d），取时间戳最新的一条。
+ * 若后端未来提供 /api/asin/{id}/latest 之类端点，可直接替换实现。
+ */
+import { ensurePageResponse } from './adapters';
+import { AsinHistoryPoint } from '../types';
+
+export async function fetchLatestSnapshot(
+  asinId: number,
+  range: string = '90d',
+  size: number = 50
+): Promise<AsinHistoryPoint | null> {
+  try {
+    const raw = await apiRequest<unknown>(
+      `/api/asin/${asinId}/history?range=${range}&page=0&size=${size}`
+    );
+    const pageResp = ensurePageResponse<AsinHistoryPoint>(raw, 0, size);
+    const items = pageResp.items || [];
+    if (!items.length) return null;
+    // 后端返回按时间升序 => 最后一条为最新；若未来改为降序可调整为 items[0]
+    return items[items.length - 1];
+  } catch (e) {
+    console.error('fetchLatestSnapshot failed', e);
+    return null;
+  }
+}

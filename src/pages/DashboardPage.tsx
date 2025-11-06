@@ -20,6 +20,7 @@ import {
   deleteAsin,
   CreateAsinDto,
   UpdateAsinDto,
+  fetchLatestSnapshot,
 } from '../api/asinApi';
 import { fetchGroups, GroupResponse } from '../api/groupApi';
 import { apiRequest } from '../api/client';
@@ -104,6 +105,44 @@ const DashboardPage: React.FC = () => {
   if (error) return <ErrorMessage error={error} />;
 
   const asinRows: AsinItem[] = data?.items || [];
+
+  // 聚合后的行（带最新快照字段）
+  const [enrichedRows, setEnrichedRows] = useState<AsinItem[]>([]);
+  const [loadingSnapshots, setLoadingSnapshots] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function enrich() {
+      if (!asinRows.length) {
+        setEnrichedRows([]);
+        return;
+      }
+      setLoadingSnapshots(true);
+      try {
+        const results = await Promise.all(
+          asinRows.map(async (row) => {
+            const latest = await fetchLatestSnapshot(row.id);
+            if (!latest) return row; // 无快照则保持原始行
+            return {
+              ...row,
+              lastPrice: latest.price,
+              lastBsr: latest.bsr,
+              lastInventory: latest.inventory,
+              totalReviews: latest.totalReviews,
+              avgRating: latest.avgRating,
+            };
+          })
+        );
+        if (!cancelled) setEnrichedRows(results);
+      } finally {
+        if (!cancelled) setLoadingSnapshots(false);
+      }
+    }
+    enrich();
+    return () => {
+      cancelled = true;
+    };
+  }, [asinRows]);
   const alertItems: AlertItem[] = (alertsResp?.items || []).map(mapAlertLog);
   const groupOptions = [
     { label: '全部分组', value: undefined },
@@ -189,7 +228,7 @@ const DashboardPage: React.FC = () => {
       </Space>
       <Table
         rowKey="id"
-        dataSource={asinRows}
+        dataSource={enrichedRows.length ? enrichedRows : asinRows}
         columns={columns}
         pagination={{
           current: page,
@@ -198,6 +237,9 @@ const DashboardPage: React.FC = () => {
           onChange: (p) => setPage(p),
         }}
       />
+      {loadingSnapshots && (
+        <div style={{ marginTop: 8, fontSize: 12, color: '#999' }}>正在加载最新快照数据...</div>
+      )}
 
       <Modal title="添加ASIN" open={openAdd} onOk={handleAdd} onCancel={() => setOpenAdd(false)}>
         <Form form={form} layout="vertical">
