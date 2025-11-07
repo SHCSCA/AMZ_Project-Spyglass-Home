@@ -94,6 +94,8 @@ const AsinDetailPage: React.FC = () => {
     error: errorInfo,
   } = useFetch(() => fetchAsinIdByCode(asin!), [asin]);
 
+  const asinId = asinInfo?.id;
+
   // 第二步: 使用ID获取历史数据
   const {
     data: historyResp,
@@ -169,10 +171,8 @@ const AsinDetailPage: React.FC = () => {
   );
 
   // 合并loading和error状态
-  // 合并加载状态
   const loading = loadingInfo || loadingHistory;
   const error = errorInfo || errorHistory;
-  const asinId = asinInfo?.id;
 
   // ⚠️ 所有 Hooks (useMemo) 必须在条件返回之前调用
   // 否则会违反 React Hooks 规则导致 #310 错误
