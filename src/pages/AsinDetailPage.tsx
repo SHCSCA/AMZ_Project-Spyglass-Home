@@ -25,13 +25,16 @@ import NegativeReviewsList from '../components/NegativeReviewsList';
 import HistoryDataTable from '../components/HistoryDataTable';
 
 // 通过ASIN码查询获取ID
-async function fetchAsinIdByCode(asinCode: string): Promise<number> {
-  const raw = await apiRequest<unknown>(`/api/asin?asin=${asinCode}&page=0&size=1`);
+async function fetchAsinIdByCode(asinCode: string): Promise<AsinResponse> {
+  // 使用 asin 参数精确查询
+  const raw = await apiRequest<unknown>(
+    `/api/asin?asin=${encodeURIComponent(asinCode)}&exact=true&page=0&size=1`
+  );
   const pageResp = ensurePageResponse<AsinResponse>(raw, 0, 1);
   if (!pageResp.items || pageResp.items.length === 0) {
     throw new Error(`ASIN ${asinCode} 未找到`);
   }
-  return pageResp.items[0].id;
+  return pageResp.items[0];
 }
 
 async function fetchHistory(
@@ -84,11 +87,11 @@ const AsinDetailPage: React.FC = () => {
   const [historyPage] = useState(1); // 当前未实现翻页，保留值以兼容未来扩展
   const historyPageSize = 200; // 拉较大窗口用于图表
 
-  // 第一步: 通过ASIN码获取ID
+  // 获取ASIN基本信息
   const {
-    data: asinId,
-    loading: loadingId,
-    error: errorId,
+    data: asinInfo,
+    loading: loadingInfo,
+    error: errorInfo,
   } = useFetch(() => fetchAsinIdByCode(asin!), [asin]);
 
   // 第二步: 使用ID获取历史数据
@@ -166,8 +169,10 @@ const AsinDetailPage: React.FC = () => {
   );
 
   // 合并loading和error状态
-  const loading = loadingId || (asinId != null && loadingHistory);
-  const error = errorId || errorHistory;
+  // 合并加载状态
+  const loading = loadingInfo || loadingHistory;
+  const error = errorInfo || errorHistory;
+  const asinId = asinInfo?.id;
 
   // ⚠️ 所有 Hooks (useMemo) 必须在条件返回之前调用
   // 否则会违反 React Hooks 规则导致 #310 错误
