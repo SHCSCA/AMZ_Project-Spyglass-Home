@@ -25,24 +25,12 @@ import AsinAlertsList from '../components/AsinAlertsList';
 import NegativeReviewsList from '../components/NegativeReviewsList';
 import HistoryDataTable from '../components/HistoryDataTable';
 
-// 通过ASIN码查询获取完整 AsinResponse
-// 优先使用后端 by-asin 接口 `/api/asin/by-asin/{asin}`（若后端有该接口）
-// 如果该接口不存在或返回错误，则回退到列表查询（exact=true）
+// 通过 ASIN code 查询完整 AsinResponse
+// 严格使用后端 by-asin 接口 `/api/asin/by-asin/{asin}`，不要回退到列表查询（避免拿到错误的第一条）
 async function fetchAsinIdByCode(asinCode: string): Promise<AsinResponse> {
-  try {
-    const raw = await apiRequest<AsinResponse>(`/api/asin/by-asin/${encodeURIComponent(asinCode)}`);
-    return raw as AsinResponse;
-  } catch (e) {
-    // fallback to list query
-    const raw = await apiRequest<unknown>(
-      `/api/asin?asin=${encodeURIComponent(asinCode)}&exact=true&page=0&size=1`
-    );
-    const pageResp = ensurePageResponse<AsinResponse>(raw, 0, 1);
-    if (!pageResp.items || pageResp.items.length === 0) {
-      throw new Error(`ASIN ${asinCode} 未找到`);
-    }
-    return pageResp.items[0];
-  }
+  const raw = await apiRequest<AsinResponse>(`/api/asin/by-asin/${encodeURIComponent(asinCode)}`);
+  if (!raw) throw new Error(`ASIN ${asinCode} 未找到`);
+  return raw as AsinResponse;
 }
 
 async function fetchHistory(
@@ -57,25 +45,21 @@ async function fetchHistory(
   return ensurePageResponse<AsinHistoryPoint>(raw, page, size);
 }
 async function fetchAsinAlerts(
-  idOrAsin: number | string,
+  asinId: number,
   page: number,
   size: number,
   type?: string,
   from?: string,
   to?: string
 ): Promise<PageResponse<AlertLogResponse>> {
+  // 默认时间范围为最近30天
+  const fromTs = from ?? dayjs().subtract(30, 'day').toISOString();
+  const toTs = to ?? dayjs().toISOString();
   const q = new URLSearchParams({ page: String(page), size: String(size) });
   if (type) q.set('type', type);
-  if (from) q.set('from', from);
-  if (to) q.set('to', to);
-  let raw: unknown;
-  if (typeof idOrAsin === 'number') {
-    raw = await apiRequest<unknown>(`/api/asin/${idOrAsin}/alerts?${q.toString()}`);
-  } else {
-    // 后端全局告警接口支持按 asin 过滤：/api/alerts?asin=XXX
-    q.set('asin', idOrAsin);
-    raw = await apiRequest<unknown>(`/api/alerts?${q.toString()}`);
-  }
+  if (fromTs) q.set('from', fromTs);
+  if (toTs) q.set('to', toTs);
+  const raw = await apiRequest<unknown>(`/api/asin/${asinId}/alerts?${q.toString()}`);
   return ensurePageResponse<AlertLogResponse>(raw, page, size);
 }
 async function fetchNegativeReviews(
@@ -151,9 +135,9 @@ const AsinDetailPage: React.FC = () => {
     error: errorAlerts,
   } = useFetch(
     () =>
-      asinId || asin
+      asinId
         ? fetchAsinAlerts(
-            (asinId ?? asin) as number | string,
+            asinId,
             alertPage - 1,
             alertPageSize,
             alertType,
@@ -169,7 +153,7 @@ const AsinDetailPage: React.FC = () => {
             hasNext: false,
             hasPrevious: false,
           }),
-    [asinId, asin, alertPage, alertType, fromDate, toDate]
+    [asinId, alertPage, alertType, fromDate, toDate]
   );
 
   const [reviewPage, setReviewPage] = useState(1);
