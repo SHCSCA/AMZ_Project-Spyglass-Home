@@ -181,24 +181,16 @@ const AsinDetailPage: React.FC = () => {
     () =>
       asinId
         ? fetchNegativeReviews(asinId, reviewPage - 1, reviewPageSize)
-        : asin
-          ? // 回退：按 asin 过滤差评（若后端支持此查询）
-            (async () => {
-              const raw = await apiRequest<unknown>(
-                `/api/reviews?asin=${encodeURIComponent(asin)}&rating=negative&page=${reviewPage - 1}&size=${reviewPageSize}`
-              );
-              return ensurePageResponse<ReviewAlertResponse>(raw, reviewPage - 1, reviewPageSize);
-            })()
-          : Promise.resolve({
-              items: [],
-              total: 0,
-              page: 0,
-              size: 0,
-              totalPages: 0,
-              hasNext: false,
-              hasPrevious: false,
-            }),
-    [asinId, asin, reviewPage]
+        : Promise.resolve({
+            items: [],
+            total: 0,
+            page: 0,
+            size: 0,
+            totalPages: 0,
+            hasNext: false,
+            hasPrevious: false,
+          }),
+    [asinId, reviewPage]
   );
 
   // 合并loading和error状态
