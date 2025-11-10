@@ -171,6 +171,7 @@ const AsinDetailPage: React.FC = () => {
           }),
     [asinId, asin, alertPage, alertType, fromDate, toDate]
   );
+
   const [reviewPage, setReviewPage] = useState(1);
   const reviewPageSize = 20;
   const {
@@ -179,6 +180,7 @@ const AsinDetailPage: React.FC = () => {
     error: errorReviews,
   } = useFetch(
     () =>
+      // 仅在我们已知 asinId 时请求差评（后端支持 /api/asin/{id}/reviews）
       asinId
         ? fetchNegativeReviews(asinId, reviewPage - 1, reviewPageSize)
         : Promise.resolve({
