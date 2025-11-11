@@ -22,7 +22,6 @@ import {
   deleteAsin,
   CreateAsinDto,
   UpdateAsinDto,
-  fetchLatestSnapshot,
 } from '../api/asinApi';
 import { fetchGroups, GroupResponse } from '../api/groupApi';
 import { apiRequest } from '../api/client';
@@ -67,43 +66,11 @@ const DashboardPage: React.FC = () => {
   const [openEdit, setOpenEdit] = useState<AsinItem | null>(null);
   const [form] = Form.useForm<Partial<CreateAsinDto>>();
 
-  // useEffect 处理聚合快照数据
+  // 最新指标：后端直接在列表中返回 last* 字段（避免每行额外请求）；若后续需要更精确快照可追加单独聚合端点
   useEffect(() => {
     const asinRows: AsinItem[] = data?.items || [];
-    let cancelled = false;
-    async function enrich() {
-      if (!asinRows.length) {
-        if (!cancelled && mountedRef.current) setEnrichedRows([]);
-        return;
-      }
-      if (!cancelled && mountedRef.current) setLoadingSnapshots(true);
-      try {
-        const results = await Promise.all(
-          asinRows.map(async (row) => {
-            const latest = await fetchLatestSnapshot(row.id);
-            if (!latest) return row; // 无快照则保持原始行
-            return {
-              ...row,
-              lastPrice: latest.price,
-              lastBsr: latest.bsr,
-              lastBsrSubcategoryRank: latest.bsrSubcategoryRank,
-              totalReviews: latest.totalReviews,
-              avgRating: latest.avgRating,
-            };
-          })
-        );
-        if (!cancelled && mountedRef.current) setEnrichedRows(results);
-      } catch (err) {
-        console.error('Enrich snapshots failed:', err);
-        if (!cancelled && mountedRef.current) setEnrichedRows(asinRows); // 失败时回退原始数据
-      } finally {
-        if (!cancelled && mountedRef.current) setLoadingSnapshots(false);
-      }
-    }
-    enrich();
-    return () => {
-      cancelled = true;
-    };
+    // 直接使用后端聚合字段，不再额外请求 fetchLatestSnapshot（已删除）。
+    setEnrichedRows(asinRows);
   }, [data]);
 
   const handleAdd = async () => {
