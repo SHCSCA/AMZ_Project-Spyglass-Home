@@ -85,6 +85,20 @@ export interface AsinHistoryPoint {
   snapshotAt: string; // ISO 时间戳
 }
 
+// 根据 swagger: /api/asin/by-asin/{asin} 返回最新一次历史快照结构（与单条 AsinHistoryPoint 基本一致，提供 asinId 主键）
+export interface AsinHistorySnapshot {
+  id: number; // snapshot id
+  asinId: number; // 真实 ASIN 主键
+  price?: number;
+  bsr?: number;
+  inventory?: number;
+  bsrSubcategory?: string;
+  bsrSubcategoryRank?: number;
+  totalReviews?: number;
+  avgRating?: number;
+  snapshotAt: string;
+}
+
 // 为图表消费的通用 HistoryPoint（保持旧结构，但由 AsinHistoryPoint 映射）
 export interface HistoryPoint {
   timestamp: string; // ISO = snapshotAt

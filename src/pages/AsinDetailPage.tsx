@@ -20,17 +20,31 @@ import ErrorMessage from '../components/ErrorMessage';
 import ReactECharts from './ReactEChartsLazy';
 import { Radio, Tabs, Space, Select, DatePicker, Card, Statistic, Row, Col } from 'antd';
 import dayjs, { Dayjs } from 'dayjs';
+import { DEFAULT_ALERT_RANGE_DAYS } from '../constants/config';
+// 已在上方 import 列表中加载 HistoryPoint / AsinHistoryPoint, 这里无需重复导入
 import type { RadioChangeEvent } from 'antd/es/radio';
 import AsinAlertsList from '../components/AsinAlertsList';
 import NegativeReviewsList from '../components/NegativeReviewsList';
 import HistoryDataTable from '../components/HistoryDataTable';
 
-// 通过 ASIN code 查询完整 AsinResponse
-// 严格使用后端 by-asin 接口 `/api/asin/by-asin/{asin}`，不要回退到列表查询（避免拿到错误的第一条）
-async function fetchAsinIdByCode(asinCode: string): Promise<AsinResponse> {
-  const raw = await apiRequest<AsinResponse>(`/api/asin/by-asin/${encodeURIComponent(asinCode)}`);
-  if (!raw) throw new Error(`ASIN ${asinCode} 未找到`);
-  return raw as AsinResponse;
+// 根据 swagger: /api/asin/by-asin/{asin} 返回最新历史快照 (AsinHistoryResponse)
+// 注意：返回对象是快照，包含 snapshot id 与真实 ASIN 主键 asinId；后续查询必须用 asinId。
+interface AsinHistorySnapshot {
+  id: number;
+  asinId: number;
+  price?: number;
+  bsr?: number;
+  inventory?: number;
+  bsrSubcategory?: string;
+  bsrSubcategoryRank?: number;
+  totalReviews?: number;
+  avgRating?: number;
+  snapshotAt: string;
+}
+async function fetchAsinSnapshotByCode(asinCode: string): Promise<AsinHistorySnapshot> {
+  const raw = await apiRequest<AsinHistorySnapshot>(`/api/asin/by-asin/${encodeURIComponent(asinCode)}`);
+  if (!raw) throw new Error(`ASIN ${asinCode} 未找到或无历史快照`);
+  return raw;
 }
 
 async function fetchHistory(
@@ -52,8 +66,8 @@ async function fetchAsinAlerts(
   from?: string,
   to?: string
 ): Promise<PageResponse<AlertLogResponse>> {
-  // 默认时间范围为最近30天
-  const fromTs = from ?? dayjs().subtract(30, 'day').toISOString();
+  // Swagger: /api/asin/{id}/alerts (page,size,type,from,to)
+  const fromTs = from ?? dayjs().subtract(DEFAULT_ALERT_RANGE_DAYS, 'day').toISOString();
   const toTs = to ?? dayjs().toISOString();
   const q = new URLSearchParams({ page: String(page), size: String(size) });
   if (type) q.set('type', type);
@@ -88,20 +102,21 @@ const AsinDetailPage: React.FC = () => {
 
   // 获取ASIN基本信息：支持传入 numeric id 或 asin code
   const {
-    data: asinInfo,
+    data: asinInfoOrSnapshot,
     loading: loadingInfo,
     error: errorInfo,
-  } = useFetch(() => {
-    if (!asin) return Promise.resolve(undefined as unknown as AsinResponse);
-    // 如果路由参数是纯数字，直接按 id 请求详情
+  } = useFetch<AsinResponse | AsinHistorySnapshot>(() => {
+    if (!asin) return Promise.resolve(null as any);
     if (/^\d+$/.test(asin)) {
       return fetchAsinDetail(Number(asin));
     }
-    // 否则按 asin code 查询（回退到 list 查询并取第一条）
-    return fetchAsinIdByCode(asin);
+    return fetchAsinSnapshotByCode(asin);
   }, [asin]);
 
-  const asinId = asinInfo?.id;
+  // 统一真实 ASIN 主键（快照对象含 asinId，基础对象含 id）
+  const asinId = asinInfoOrSnapshot && typeof asinInfoOrSnapshot === 'object' && 'asinId' in (asinInfoOrSnapshot as any)
+    ? (asinInfoOrSnapshot as any).asinId
+    : (asinInfoOrSnapshot as AsinResponse | undefined)?.id;
 
   // 第二步: 使用ID获取历史数据
   const {
@@ -127,7 +142,7 @@ const AsinDetailPage: React.FC = () => {
   const [alertPage, setAlertPage] = useState(1);
   const alertPageSize = 20;
   const [alertType, setAlertType] = useState<string | undefined>();
-  const [fromDate, setFromDate] = useState<Dayjs | null>(dayjs().subtract(30, 'day'));
+  const [fromDate, setFromDate] = useState<Dayjs | null>(dayjs().subtract(DEFAULT_ALERT_RANGE_DAYS, 'day'));
   const [toDate, setToDate] = useState<Dayjs | null>(dayjs());
   const {
     data: alertsResp,
@@ -198,19 +213,19 @@ const AsinDetailPage: React.FC = () => {
   }, [historyResp, asin, range]);
 
   const priceSeries = useMemo(
-    () => historyPoints.filter((p) => p.price !== undefined),
+    () => historyPoints.filter((p: HistoryPoint) => p.price !== undefined),
     [historyPoints]
   );
   const bsrSeries = useMemo(
-    () => historyPoints.filter((p) => p.bsr !== undefined),
+    () => historyPoints.filter((p: HistoryPoint) => p.bsr !== undefined),
     [historyPoints]
   );
   // 新增: 小类BSR排名趋势
   const bsrSubcategorySeries = useMemo(
     () =>
-      historyResp?.items
+      ((historyResp?.items as AsinHistoryPoint[] | undefined)
         ?.filter((p) => p.bsrSubcategoryRank !== undefined && p.bsrSubcategoryRank !== null)
-        .map((p) => ({ timestamp: p.snapshotAt, value: p.bsrSubcategoryRank })) ?? [],
+        .map((p) => ({ timestamp: p.snapshotAt, value: p.bsrSubcategoryRank })) ?? []),
     [historyResp]
   );
 
@@ -362,7 +377,7 @@ const AsinDetailPage: React.FC = () => {
           <ReactECharts
             option={buildLineOption(
               '价格趋势',
-              priceSeries.map((p) => ({ timestamp: p.timestamp, value: p.price })),
+              priceSeries.map((p: HistoryPoint) => ({ timestamp: p.timestamp, value: p.price })),
               '价格'
             )}
           />
@@ -373,7 +388,7 @@ const AsinDetailPage: React.FC = () => {
           <ReactECharts
             option={buildLineOption(
               'BSR趋势',
-              bsrSeries.map((p) => ({ timestamp: p.timestamp, value: p.bsr })),
+              bsrSeries.map((p: HistoryPoint) => ({ timestamp: p.timestamp, value: p.bsr })),
               'BSR'
             )}
           />

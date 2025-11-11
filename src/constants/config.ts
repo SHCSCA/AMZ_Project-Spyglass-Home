@@ -6,6 +6,9 @@ export const DEFAULT_API_TIMEOUT_MS = 10_000; // 默认 API 超时时间 10s
 export const DEFAULT_API_RETRY = 2;           // 默认重试次数（仅 5xx / 网络错误重试）
 export const DEFAULT_API_CACHE_TTL_MS = 30_000; // 默认 GET 缓存 TTL 30s
 
+/** 默认告警时间范围（最近天数） */
+export const DEFAULT_ALERT_RANGE_DAYS = 30;
+
 /** swagger 文档地址（后端公开接口），用于 README 链接或自动化脚本 */
 export const SWAGGER_URL = 'http://shcamz.xyz:8081/swagger-ui/index.html';
 
