@@ -11,6 +11,7 @@ import {
   AlertLogResponse,
   ReviewAlertResponse,
   AsinResponse,
+  AsinHistorySnapshot,
 } from '../types';
 import { ensurePageResponse } from '../api/adapters';
 import { mapHistoryPoint, mapAlertLog, mapReview } from '../api';
@@ -27,20 +28,7 @@ import AsinAlertsList from '../components/AsinAlertsList';
 import NegativeReviewsList from '../components/NegativeReviewsList';
 import HistoryDataTable from '../components/HistoryDataTable';
 
-// 根据 swagger: /api/asin/by-asin/{asin} 返回最新历史快照 (AsinHistoryResponse)
-// 注意：返回对象是快照，包含 snapshot id 与真实 ASIN 主键 asinId；后续查询必须用 asinId。
-interface AsinHistorySnapshot {
-  id: number;
-  asinId: number;
-  price?: number;
-  bsr?: number;
-  inventory?: number;
-  bsrSubcategory?: string;
-  bsrSubcategoryRank?: number;
-  totalReviews?: number;
-  avgRating?: number;
-  snapshotAt: string;
-}
+// /api/asin/by-asin/{asin} 返回最新一次历史快照 (AsinHistorySnapshot 类型来自 types)
 async function fetchAsinSnapshotByCode(asinCode: string): Promise<AsinHistorySnapshot> {
   const raw = await apiRequest<AsinHistorySnapshot>(`/api/asin/by-asin/${encodeURIComponent(asinCode)}`);
   if (!raw) throw new Error(`ASIN ${asinCode} 未找到或无历史快照`);
@@ -117,6 +105,15 @@ const AsinDetailPage: React.FC = () => {
   const asinId = asinInfoOrSnapshot && typeof asinInfoOrSnapshot === 'object' && 'asinId' in (asinInfoOrSnapshot as any)
     ? (asinInfoOrSnapshot as any).asinId
     : (asinInfoOrSnapshot as AsinResponse | undefined)?.id;
+
+  // 如果是通过 asin code 获取的快照，提取出来参与最新点计算
+  const snapshot = useMemo(
+    () =>
+      asinInfoOrSnapshot && 'snapshotAt' in (asinInfoOrSnapshot as any)
+        ? (asinInfoOrSnapshot as AsinHistorySnapshot)
+        : null,
+    [asinInfoOrSnapshot]
+  );
 
   // 第二步: 使用ID获取历史数据
   const {
@@ -200,17 +197,23 @@ const AsinDetailPage: React.FC = () => {
 
   // ⚠️ 所有 Hooks (useMemo) 必须在条件返回之前调用
   // 否则会违反 React Hooks 规则导致 #310 错误
+  const sortedHistoryItems: AsinHistoryPoint[] = useMemo(() => {
+    const arr = (historyResp?.items as AsinHistoryPoint[] | undefined) || [];
+    return [...arr].sort(
+      (a, b) => dayjs(a.snapshotAt).valueOf() - dayjs(b.snapshotAt).valueOf()
+    );
+  }, [historyResp]);
+
   const historyPoints: HistoryPoint[] = useMemo(() => {
-    if (!historyResp) return []; // 添加空值检查
     try {
-      const pts = (historyResp.items || []).map(mapHistoryPoint);
+      const pts = sortedHistoryItems.map(mapHistoryPoint);
       logInfo('asin_detail_history_loaded', { asin, count: pts.length, range });
       return pts;
     } catch (e) {
       logError('asin_detail_history_map_failed', { asin, error: String(e) });
       return [];
     }
-  }, [historyResp, asin, range]);
+  }, [sortedHistoryItems, asin, range]);
 
   const priceSeries = useMemo(
     () => historyPoints.filter((p: HistoryPoint) => p.price !== undefined),
@@ -223,13 +226,22 @@ const AsinDetailPage: React.FC = () => {
   // 新增: 小类BSR排名趋势
   const bsrSubcategorySeries = useMemo(
     () =>
-      ((historyResp?.items as AsinHistoryPoint[] | undefined)
-        ?.filter((p) => p.bsrSubcategoryRank !== undefined && p.bsrSubcategoryRank !== null)
-        .map((p) => ({ timestamp: p.snapshotAt, value: p.bsrSubcategoryRank })) ?? []),
-    [historyResp]
+      sortedHistoryItems
+        .filter((p) => p.bsrSubcategoryRank !== undefined && p.bsrSubcategoryRank !== null)
+        .map((p) => ({ timestamp: p.snapshotAt, value: p.bsrSubcategoryRank })),
+    [sortedHistoryItems]
   );
 
-  const latest = historyResp?.items?.[historyResp.items.length - 1];
+  // 最新点：合并排序后的历史与 snapshot，取最大 snapshotAt
+  const latest = useMemo(() => {
+    const candidates: AsinHistoryPoint[] = [];
+    if (sortedHistoryItems.length) candidates.push(...sortedHistoryItems);
+    if (snapshot) candidates.push(snapshot as AsinHistoryPoint);
+    if (!candidates.length) return null;
+    return candidates.reduce((max, cur) =>
+      dayjs(cur.snapshotAt).isAfter(dayjs(max.snapshotAt)) ? cur : max
+    );
+  }, [sortedHistoryItems, snapshot]);
 
   const debugDisableCharts =
     typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('debugCharts');
