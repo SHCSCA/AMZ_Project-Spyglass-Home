@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { logInfo, logError } from '../logger';
 import type { EChartsOption } from 'echarts';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { apiRequest } from '../api/client';
 import { fetchAsinDetail } from '../api/asinApi';
 import {
@@ -84,6 +84,7 @@ const ranges = [
 
 const AsinDetailPage: React.FC = () => {
   const { asin } = useParams<{ asin: string }>();
+  const navigate = useNavigate();
   const [range, setRange] = useState('30d');
   const [historyPage] = useState(1); // 当前未实现翻页，保留值以兼容未来扩展
   const historyPageSize = 200; // 拉较大窗口用于图表
@@ -329,7 +330,23 @@ const AsinDetailPage: React.FC = () => {
 
   return (
     <div style={{ fontSize: '14px' }}>
-      <h2 style={{ marginBottom: 16, fontSize: '20px' }}>ASIN 详情: {asin}</h2>
+      <div style={{ display: 'flex', alignItems: 'center', marginBottom: 16, gap: 12 }}>
+        <button
+          onClick={() => navigate(-1)}
+          style={{
+            border: '1px solid #d9d9d9',
+            background: '#fff',
+            padding: '4px 12px',
+            cursor: 'pointer',
+            borderRadius: 4,
+            fontSize: 12,
+          }}
+          aria-label="返回上一页"
+        >
+          ← 返回
+        </button>
+        <h2 style={{ margin: 0, fontSize: '20px' }}>ASIN 详情: {asin}</h2>
+      </div>
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
         <Col span={6}>
           <Card size="small">
