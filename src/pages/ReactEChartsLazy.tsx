@@ -2,9 +2,12 @@ import React from 'react';
 import * as echarts from 'echarts';
 import { logError, logInfo } from '../logger';
 
-interface Props { option: echarts.EChartsOption }
+interface Props {
+  option: echarts.EChartsOption;
+  height?: number;
+}
 
-const ReactEChartsLazy: React.FC<Props> = ({ option }) => {
+const ReactEChartsLazy: React.FC<Props> = ({ option, height = 300 }) => {
   const ref = React.useRef<HTMLDivElement>(null);
   React.useEffect(() => {
     if (!ref.current) return;
@@ -21,7 +24,7 @@ const ReactEChartsLazy: React.FC<Props> = ({ option }) => {
     window.addEventListener('resize', resize);
     return () => { try { chart?.dispose(); } catch {} window.removeEventListener('resize', resize); };
   }, [option]);
-  return <div ref={ref} style={{ width: '100%', height: 300 }} />;
+  return <div ref={ref} style={{ width: '100%', height }} />;
 };
 
 export default ReactEChartsLazy;

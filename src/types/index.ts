@@ -82,6 +82,9 @@ export interface AsinHistoryPoint {
   avgRating?: number;
   title?: string;
   bulletPoints?: string;
+  referralFee?: number;
+  couponValue?: string | null;
+  isLightningDeal?: boolean;
   snapshotAt: string; // ISO 时间戳
 }
 
@@ -96,6 +99,9 @@ export interface AsinHistorySnapshot {
   bsrSubcategoryRank?: number;
   totalReviews?: number;
   avgRating?: number;
+  referralFee?: number;
+  couponValue?: string | null;
+  isLightningDeal?: boolean;
   snapshotAt: string;
 }
 
@@ -105,6 +111,34 @@ export interface HistoryPoint {
   price?: number;
   bsr?: number;
   inventory?: number;
+}
+
+export interface AsinCost {
+  id?: number;
+  asinId: number;
+  fobCost: number;
+  shippingCost: number;
+  referralFee?: number;
+  fbaFeeOverride?: number;
+  estimatedProfit?: number;
+  profitMargin?: number;
+  updatedAt?: string;
+}
+
+export interface AsinKeyword {
+  id: number;
+  keyword: string;
+  lastOrganicRank: number | null;
+  lastSponsoredRank: number | null;
+  updatedAt: string;
+}
+
+export interface KeywordRankPoint {
+  keywordId: number;
+  keyword: string;
+  snapshotAt: string;
+  organicRank?: number | null;
+  sponsoredRank?: number | null;
 }
 
 // ReviewAlertResponse
