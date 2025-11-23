@@ -35,15 +35,15 @@ const RankingChart: React.FC<RankingChartProps> = ({ points, loading, height = 3
 
     const series = Array.from(seriesMap.values()).map((item) => ({
       name: item.keyword,
-      type: 'line',
+      type: 'line' as const,
       smooth: true,
       data: item.data,
       lineStyle: { width: 2 },
-      emphasis: { focus: 'series' },
+      emphasis: { focus: 'series' as const },
       itemStyle: { color: item.color },
     }));
 
-    const chartOption: EChartsOption = {
+    const chartOption = {
       tooltip: {
         trigger: 'axis',
       },
@@ -67,7 +67,7 @@ const RankingChart: React.FC<RankingChartProps> = ({ points, loading, height = 3
         { type: 'slider', height: 30 },
       ],
       series,
-    };
+    } as EChartsOption;
     return chartOption;
   }, [points]);
 

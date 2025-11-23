@@ -24,6 +24,7 @@ const CombinedChart: React.FC<CombinedChartProps> = ({ points, loading, height =
       .filter((item) => item.couponValue)
       .map((item) => ({
         coord: [dayjs(item.snapshotAt).format('YYYY-MM-DD HH:mm'), item.price ?? 0],
+        name: 'coupon',
         value: '券',
         itemStyle: { color: '#10B981' },
         tooltip: { formatter: () => `优惠券 ${item.couponValue}` },
@@ -46,7 +47,7 @@ const CombinedChart: React.FC<CombinedChartProps> = ({ points, loading, height =
     });
     if (currentRange) dealRanges.push(currentRange);
 
-    const chartOption: EChartsOption = {
+    const chartOption = {
       tooltip: {
         trigger: 'axis',
         axisPointer: { type: 'cross' },
@@ -84,7 +85,7 @@ const CombinedChart: React.FC<CombinedChartProps> = ({ points, loading, height =
       series: [
         {
           name: '价格',
-          type: 'line',
+          type: 'line' as const,
           data: priceData,
           smooth: true,
           showSymbol: false,
@@ -100,7 +101,7 @@ const CombinedChart: React.FC<CombinedChartProps> = ({ points, loading, height =
         },
         {
           name: 'BSR 排名',
-          type: 'line',
+          type: 'line' as const,
           data: bsrData,
           yAxisIndex: 1,
           smooth: true,
@@ -109,7 +110,7 @@ const CombinedChart: React.FC<CombinedChartProps> = ({ points, loading, height =
         },
         {
           name: '真实库存',
-          type: 'line',
+          type: 'line' as const,
           data: inventoryData,
           yAxisIndex: 2,
           step: 'end',
@@ -117,7 +118,7 @@ const CombinedChart: React.FC<CombinedChartProps> = ({ points, loading, height =
           itemStyle: { color: '#722ED1' },
         },
       ],
-    };
+    } as EChartsOption;
     return chartOption;
   }, [points]);
 
