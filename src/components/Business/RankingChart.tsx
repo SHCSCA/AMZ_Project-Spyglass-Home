@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import dayjs from 'dayjs';
 import { Empty, Skeleton } from 'antd';
+import type { EChartsOption } from 'echarts';
 import type { KeywordRankPoint } from '../../types';
 import ReactECharts from '../../pages/ReactEChartsLazy';
 
@@ -13,7 +14,7 @@ interface RankingChartProps {
 const palette = ['#6366F1', '#22D3EE', '#F97316', '#F472B6', '#0EA5E9', '#14B8A6', '#FACC15', '#A855F7'];
 
 const RankingChart: React.FC<RankingChartProps> = ({ points, loading, height = 360 }) => {
-  const option = useMemo(() => {
+  const option = useMemo<EChartsOption | null>(() => {
     if (!points.length) return null;
     const sortedDates = Array.from(
       new Set(points.map((p) => dayjs(p.snapshotAt).format('YYYY-MM-DD')))
@@ -42,14 +43,14 @@ const RankingChart: React.FC<RankingChartProps> = ({ points, loading, height = 3
       itemStyle: { color: item.color },
     }));
 
-    return {
+    const chartOption: EChartsOption = {
       tooltip: {
         trigger: 'axis',
       },
       legend: {
         type: 'scroll',
       },
-      grid: { left: 40, right: 20, top: 40, bottom: 60 },
+      grid: { left: 40, right: 20, top: 40, bottom: 80 },
       xAxis: {
         type: 'category',
         data: sortedDates,
@@ -67,6 +68,7 @@ const RankingChart: React.FC<RankingChartProps> = ({ points, loading, height = 3
       ],
       series,
     };
+    return chartOption;
   }, [points]);
 
   if (loading) {
@@ -77,7 +79,7 @@ const RankingChart: React.FC<RankingChartProps> = ({ points, loading, height = 3
     return <Empty description="暂未获取到关键词排名数据" />;
   }
 
-  return <ReactECharts option={{ ...option, grid: { ...option.grid, bottom: 80 } }} height={height} />;
+  return <ReactECharts option={option} height={height} />;
 };
 
 export default RankingChart;

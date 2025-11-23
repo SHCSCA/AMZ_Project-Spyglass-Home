@@ -4,7 +4,7 @@ import { ArrowDownOutlined, ArrowUpOutlined } from '@ant-design/icons';
 
 interface StatCardProps {
   title: string;
-  value: number | string | React.ReactNode;
+  value: number | string;
   prefix?: React.ReactNode;
   suffix?: React.ReactNode;
   precision?: number;

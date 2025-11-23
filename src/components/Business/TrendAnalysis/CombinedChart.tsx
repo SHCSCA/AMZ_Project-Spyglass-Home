@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import dayjs from 'dayjs';
 import { Empty, Skeleton } from 'antd';
+import type { EChartsOption } from 'echarts';
 import type { AsinHistoryPoint } from '../../../types';
 import ReactECharts from '../../../pages/ReactEChartsLazy';
 
@@ -11,7 +12,7 @@ interface CombinedChartProps {
 }
 
 const CombinedChart: React.FC<CombinedChartProps> = ({ points, loading, height = 380 }) => {
-  const option = useMemo(() => {
+  const option = useMemo<EChartsOption | null>(() => {
     if (!points.length) return null;
     const sorted = [...points].sort((a, b) => dayjs(a.snapshotAt).valueOf() - dayjs(b.snapshotAt).valueOf());
     const categories = sorted.map((item) => dayjs(item.snapshotAt).format('YYYY-MM-DD HH:mm'));
@@ -45,7 +46,7 @@ const CombinedChart: React.FC<CombinedChartProps> = ({ points, loading, height =
     });
     if (currentRange) dealRanges.push(currentRange);
 
-    return {
+    const chartOption: EChartsOption = {
       tooltip: {
         trigger: 'axis',
         axisPointer: { type: 'cross' },
@@ -117,6 +118,7 @@ const CombinedChart: React.FC<CombinedChartProps> = ({ points, loading, height =
         },
       ],
     };
+    return chartOption;
   }, [points]);
 
   if (loading) {

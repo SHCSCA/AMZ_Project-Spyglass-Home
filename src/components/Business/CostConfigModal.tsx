@@ -27,13 +27,20 @@ const CostConfigModal: React.FC<CostConfigModalProps> = ({
   initialCost,
 }) => {
   const [form] = Form.useForm<CostConfigFormValues>();
-  const watchedValues = Form.useWatch([], form);
+  const watchedValues = (Form.useWatch([], form) ?? {}) as Partial<CostConfigFormValues>;
+
+  const defaults = useMemo(
+    () => ({
+      fobCost: initialCost?.fobCost ?? 0,
+      shippingCost: initialCost?.shippingCost ?? 0,
+      referralFee: initialCost?.referralFee,
+      fbaFeeOverride: initialCost?.fbaFeeOverride,
+    }),
+    [initialCost]
+  );
 
   const mergedValues = {
-    fobCost: initialCost?.fobCost ?? 0,
-    shippingCost: initialCost?.shippingCost ?? 0,
-    referralFee: initialCost?.referralFee,
-    fbaFeeOverride: initialCost?.fbaFeeOverride,
+    ...defaults,
     ...watchedValues,
   } as CostConfigFormValues;
 
