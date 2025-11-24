@@ -148,6 +148,7 @@ const AsinDetailPage: React.FC = () => {
     return (asinInfoOrSnapshot as AsinResponse).id;
   }, [asinInfoOrSnapshot]);
 
+
   const snapshot = useMemo(
     () =>
       asinInfoOrSnapshot && 'snapshotAt' in (asinInfoOrSnapshot as AsinHistorySnapshot)
@@ -176,6 +177,15 @@ const AsinDetailPage: React.FC = () => {
     }
     return asinDetailById ?? null;
   }, [asinInfoOrSnapshot, asinDetailById]);
+
+  const asinCode = useMemo(() => {
+    if (asinInfo?.asin) return asinInfo.asin;
+    if (asinInfoOrSnapshot && 'asin' in (asinInfoOrSnapshot as AsinResponse)) {
+      return (asinInfoOrSnapshot as AsinResponse).asin;
+    }
+    if (asin && !/^\d+$/.test(asin)) return asin;
+    return undefined;
+  }, [asinInfo, asinInfoOrSnapshot, asin]);
 
   const {
     data: historyResp,
@@ -224,15 +234,15 @@ const AsinDetailPage: React.FC = () => {
     data: costData,
     loading: loadingCost,
     reload: reloadCost,
-  } = useFetch<AsinCost | null>(() => (asinId ? fetchAsinCost(asinId) : Promise.resolve(null)), [asinId]);
+  } = useFetch<AsinCost | null>(() => (asinCode ? fetchAsinCost(asinCode) : Promise.resolve(null)), [asinCode]);
 
   const {
     data: keywordListResp,
     loading: loadingKeywords,
     reload: reloadKeywords,
   } = useFetch<AsinKeyword[]>(
-    () => (asinId ? fetchAsinKeywords(asinId) : Promise.resolve([])),
-    [asinId]
+    () => (asinCode ? fetchAsinKeywords(asinCode) : Promise.resolve([])),
+    [asinCode]
   );
 
   const {
@@ -240,8 +250,8 @@ const AsinDetailPage: React.FC = () => {
     loading: loadingKeywordTrend,
     reload: reloadKeywordTrend,
   } = useFetch<KeywordRankPoint[]>(
-    () => (asinId ? fetchKeywordRankTrend(asinId, keywordRange) : Promise.resolve([])),
-    [asinId, keywordRange]
+    () => (asinCode ? fetchKeywordRankTrend(asinCode, keywordRange) : Promise.resolve([])),
+    [asinCode, keywordRange]
   );
 
   const loadingInitial = loadingInfo || loadingHistory || loadingDetailById;
@@ -279,10 +289,19 @@ const AsinDetailPage: React.FC = () => {
 
   const handleCostSubmit = useCallback(
     async (values: CostConfigFormValues) => {
-      if (!asinId) return;
+      if (!asinCode) {
+        message.warning('暂未获取到 ASIN 编码，稍后再试');
+        return;
+      }
       try {
         setSavingCost(true);
-        await upsertAsinCost(asinId, values);
+        await upsertAsinCost(asinCode, {
+          purchaseCost: Number(values.purchaseCost ?? 0),
+          shippingCost: values.shippingCost ?? 0,
+          fbaFee: values.fbaFee ?? 0,
+          tariffRate: values.tariffRate ?? 0,
+          otherCost: values.otherCost ?? 0,
+        });
         message.success('成本配置已保存');
         setCostModalOpen(false);
         await reloadCost();
@@ -292,15 +311,18 @@ const AsinDetailPage: React.FC = () => {
         setSavingCost(false);
       }
     },
-    [asinId, reloadCost]
+    [asinCode, reloadCost]
   );
 
   const handleAddKeyword = useCallback(
     async (keyword: string) => {
-      if (!asinId) return;
+      if (!asinCode) {
+        message.warning('暂未获取到 ASIN 编码，暂无法添加关键词');
+        return;
+      }
       setOptimisticKeyword(keyword);
       try {
-        await createAsinKeyword(asinId, { keyword });
+        await createAsinKeyword(asinCode, { keyword });
         message.success('关键词已添加');
         await Promise.all([reloadKeywords(), reloadKeywordTrend()]);
       } catch (err) {
@@ -309,21 +331,24 @@ const AsinDetailPage: React.FC = () => {
         setOptimisticKeyword(null);
       }
     },
-    [asinId, reloadKeywords, reloadKeywordTrend]
+    [asinCode, reloadKeywords, reloadKeywordTrend]
   );
 
   const handleDeleteKeyword = useCallback(
     async (keywordId: number) => {
-      if (!asinId) return;
+      if (!asinCode) {
+        message.warning('暂未获取到 ASIN 编码，暂无法删除关键词');
+        return;
+      }
       try {
-        await deleteAsinKeyword(asinId, keywordId);
+        await deleteAsinKeyword(asinCode, keywordId);
         message.success('关键词已删除');
         await Promise.all([reloadKeywords(), reloadKeywordTrend()]);
       } catch (err) {
         message.error('删除关键词失败');
       }
     },
-    [asinId, reloadKeywords, reloadKeywordTrend]
+    [asinCode, reloadKeywords, reloadKeywordTrend]
   );
 
   const handleHistoryRangeChange = useCallback((event: RadioChangeEvent) => {

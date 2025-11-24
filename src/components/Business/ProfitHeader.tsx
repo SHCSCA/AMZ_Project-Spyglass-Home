@@ -26,17 +26,23 @@ const ProfitHeader: React.FC<ProfitHeaderProps> = ({ asinInfo, snapshot, cost, l
   const bsrSubRank = snapshot?.bsrSubcategoryRank ?? asinInfo?.lastBsrSubcategoryRank ?? null;
   const couponValue = snapshot?.couponValue ?? null;
 
-  const fobCost = cost?.fobCost ?? 0;
-  const shippingCost = cost?.shippingCost ?? 0;
-  const referralFee = cost?.referralFee ?? snapshot?.referralFee ?? 0;
-  const fbaFee = cost?.fbaFeeOverride ?? 0;
+    const purchaseCost = cost?.purchaseCost ?? 0;
+    const shippingCost = cost?.shippingCost ?? 0;
+    const fbaFee = cost?.fbaFee ?? 0;
+    const tariffRate = cost?.tariffRate ?? 0;
+    const otherCost = cost?.otherCost ?? 0;
+    const referralFee = snapshot?.referralFee ?? 0;
 
-  const { profit, profitMargin } = useMemo(() => {
-    if (!price) return { profit: null, profitMargin: null };
-    const computedProfit = price - (fobCost + shippingCost + referralFee + fbaFee);
-    const margin = price > 0 ? computedProfit / price : 0;
-    return { profit: computedProfit, profitMargin: margin };
-  }, [price, fobCost, shippingCost, referralFee, fbaFee]);
+    const { profit, profitMargin, tariffCost } = useMemo(() => {
+      if (!price) {
+        return { profit: null, profitMargin: null, tariffCost: purchaseCost * tariffRate };
+      }
+      const tariffCostCalc = purchaseCost * tariffRate;
+      const totalCost = purchaseCost + shippingCost + fbaFee + otherCost + tariffCostCalc + referralFee;
+      const computedProfit = price - totalCost;
+      const margin = price > 0 ? computedProfit / price : 0;
+      return { profit: computedProfit, profitMargin: margin, tariffCost: tariffCostCalc };
+    }, [price, purchaseCost, shippingCost, fbaFee, otherCost, tariffRate, referralFee]);
 
   const inventoryText = useMemo(() => {
     if (inventory === null || inventory === undefined) return '-';
@@ -139,9 +145,10 @@ const ProfitHeader: React.FC<ProfitHeaderProps> = ({ asinInfo, snapshot, cost, l
           <Divider style={{ margin: '16px 0' }} />
           <Row gutter={[16, 16]}>
             <Col flex="auto">
-              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                成本拆分: FOB {formatCurrency(fobCost)} · 运费 {formatCurrency(shippingCost)} · 推荐佣金 {formatCurrency(referralFee)} · FBA {formatCurrency(fbaFee)}
-              </Typography.Text>
+                <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                  成本拆分: 采购 {formatCurrency(purchaseCost)} · 运费 {formatCurrency(shippingCost)} · FBA {formatCurrency(fbaFee)} · 关税 {formatCurrency(tariffCost)} · 其他 {formatCurrency(otherCost)}
+                  {referralFee ? ` · 佣金 ${formatCurrency(referralFee)}` : ''}
+                </Typography.Text>
             </Col>
           </Row>
         </Col>

@@ -114,13 +114,13 @@ export interface HistoryPoint {
 }
 
 export interface AsinCost {
-  id?: number;
-  asinId: number;
-  fobCost: number;
-  shippingCost: number;
-  referralFee?: number;
-  fbaFeeOverride?: number;
-  estimatedProfit?: number;
+  asin: string;
+  purchaseCost: number;
+  shippingCost?: number;
+  fbaFee?: number;
+  tariffRate?: number;
+  otherCost?: number;
+  profit?: number;
   profitMargin?: number;
   updatedAt?: string;
 }
@@ -128,9 +128,10 @@ export interface AsinCost {
 export interface AsinKeyword {
   id: number;
   keyword: string;
-  lastOrganicRank: number | null;
-  lastSponsoredRank: number | null;
-  updatedAt: string;
+  isTracked: boolean;
+  lastOrganicRank?: number | null;
+  lastSponsoredRank?: number | null;
+  updatedAt?: string;
 }
 
 export interface KeywordRankPoint {

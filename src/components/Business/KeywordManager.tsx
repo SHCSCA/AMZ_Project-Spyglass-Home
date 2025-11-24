@@ -51,6 +51,9 @@ const KeywordManager: React.FC<KeywordManagerProps> = ({
             <Tag color="purple">
               广告排名: {item.lastSponsoredRank !== null && item.lastSponsoredRank !== undefined ? `#${item.lastSponsoredRank}` : '—'}
             </Tag>
+            <Tag color={item.isTracked ? 'success' : 'default'}>
+              {item.isTracked ? '追踪中' : '已停用'}
+            </Tag>
             <Typography.Text type="secondary">
               更新于 {item.updatedAt ? new Date(item.updatedAt).toLocaleString() : '未知'}
             </Typography.Text>

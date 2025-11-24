@@ -3,10 +3,11 @@ import { Form, InputNumber, Modal, Space, Statistic, Typography } from 'antd';
 import type { AsinCost } from '../../types';
 
 export interface CostConfigFormValues {
-  fobCost: number;
-  shippingCost: number;
-  referralFee?: number;
-  fbaFeeOverride?: number;
+  purchaseCost: number;
+  shippingCost?: number;
+  fbaFee?: number;
+  tariffRate?: number;
+  otherCost?: number;
 }
 
 interface CostConfigModalProps {
@@ -31,10 +32,11 @@ const CostConfigModal: React.FC<CostConfigModalProps> = ({
 
   const defaults = useMemo(
     () => ({
-      fobCost: initialCost?.fobCost ?? 0,
+      purchaseCost: initialCost?.purchaseCost ?? 0,
       shippingCost: initialCost?.shippingCost ?? 0,
-      referralFee: initialCost?.referralFee,
-      fbaFeeOverride: initialCost?.fbaFeeOverride,
+      fbaFee: initialCost?.fbaFee ?? 0,
+      tariffRate: initialCost?.tariffRate ?? 0,
+      otherCost: initialCost?.otherCost ?? 0,
     }),
     [initialCost]
   );
@@ -45,11 +47,13 @@ const CostConfigModal: React.FC<CostConfigModalProps> = ({
   } as CostConfigFormValues;
 
   const { totalCost, estimatedProfit, profitMargin } = useMemo(() => {
-    const fob = Number(mergedValues.fobCost || 0);
+    const purchase = Number(mergedValues.purchaseCost || 0);
     const shipping = Number(mergedValues.shippingCost || 0);
-    const referral = Number(mergedValues.referralFee || 0);
-    const fba = Number(mergedValues.fbaFeeOverride || 0);
-    const total = fob + shipping + referral + fba;
+    const fba = Number(mergedValues.fbaFee || 0);
+    const other = Number(mergedValues.otherCost || 0);
+    const tariffRate = Number(mergedValues.tariffRate || 0);
+    const tariff = purchase * tariffRate;
+    const total = purchase + shipping + fba + other + tariff;
     if (!price) {
       return { totalCost: total, estimatedProfit: null, profitMargin: null };
     }
@@ -69,23 +73,24 @@ const CostConfigModal: React.FC<CostConfigModalProps> = ({
       maskClosable={false}
     >
       <Typography.Paragraph>
-        在此维护 FOB、运费、推荐佣金与 FBA 费用。数值变化将实时刷新毛利试算，保存后会立即同步至利润看板。
+        在此维护采购、头程运费、FBA 配送、关税与其他杂项成本。数值变化将实时刷新毛利试算，保存后会立即同步至利润看板。
       </Typography.Paragraph>
       <Form<CostConfigFormValues>
         form={form}
         layout="vertical"
         initialValues={{
-          fobCost: initialCost?.fobCost ?? 0,
+          purchaseCost: initialCost?.purchaseCost ?? 0,
           shippingCost: initialCost?.shippingCost ?? 0,
-          referralFee: initialCost?.referralFee ?? 0,
-          fbaFeeOverride: initialCost?.fbaFeeOverride ?? 0,
+          fbaFee: initialCost?.fbaFee ?? 0,
+          tariffRate: initialCost?.tariffRate ?? 0,
+          otherCost: initialCost?.otherCost ?? 0,
         }}
         onFinish={onSubmit}
       >
         <Form.Item
-          label="FOB 采购成本"
-          name="fobCost"
-          rules={[{ required: true, message: '请输入 FOB 成本' }]}
+          label="采购成本 (Purchase)"
+          name="purchaseCost"
+          rules={[{ required: true, message: '请输入采购成本' }]}
         >
           <InputNumber prefix="$" style={{ width: '100%' }} min={0} step={0.01} controls={false} />
         </Form.Item>
@@ -96,10 +101,29 @@ const CostConfigModal: React.FC<CostConfigModalProps> = ({
         >
           <InputNumber prefix="$" style={{ width: '100%' }} min={0} step={0.01} controls={false} />
         </Form.Item>
-        <Form.Item label="推荐佣金" name="referralFee">
+        <Form.Item label="FBA 配送费" name="fbaFee">
           <InputNumber prefix="$" style={{ width: '100%' }} min={0} step={0.01} controls={false} />
         </Form.Item>
-        <Form.Item label="FBA 配送费" name="fbaFeeOverride">
+        <Form.Item label="关税税率" name="tariffRate">
+          <InputNumber
+            style={{ width: '100%' }}
+            min={0}
+            max={1}
+            step={0.01}
+            controls={false}
+            formatter={(value) => `${Number(value ?? 0) * 100}%`}
+            parser={(value) => {
+              if (!value) return 0;
+              const numeric = Number(String(value).replace(/%/g, ''));
+              if (Number.isNaN(numeric)) return 0;
+              return numeric / 100;
+            }}
+          />
+          <Typography.Text type="secondary" style={{ display: 'block', marginTop: 4 }}>
+            输入 6 代表 6% 关税
+          </Typography.Text>
+        </Form.Item>
+        <Form.Item label="其他成本" name="otherCost">
           <InputNumber prefix="$" style={{ width: '100%' }} min={0} step={0.01} controls={false} />
         </Form.Item>
       </Form>
