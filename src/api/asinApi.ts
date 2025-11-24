@@ -5,6 +5,41 @@
 import { apiRequest } from './client';
 import { PageResponse, AsinResponse } from '../types';
 
+function toOptionalNumber(value: unknown): number | undefined {
+  if (value === null || value === undefined) return undefined;
+  const num = Number(value);
+  return Number.isFinite(num) ? num : undefined;
+}
+
+function toOptionalString(value: unknown): string | undefined {
+  if (value === null || value === undefined) return undefined;
+  const str = String(value).trim();
+  return str.length ? str : undefined;
+}
+
+function mapAsinResponse(raw: Record<string, unknown>): AsinResponse {
+  return {
+    id: Number(raw.id ?? 0),
+    asin: toOptionalString(raw.asin) ?? '',
+    site: toOptionalString(raw.site) ?? '',
+    nickname: toOptionalString(raw.nickname),
+    inventoryThreshold: toOptionalNumber(raw.inventoryThreshold),
+    brand: toOptionalString(raw.brand),
+    groupId: toOptionalNumber(raw.groupId),
+    groupName: toOptionalString(raw.groupName),
+    createdAt: typeof raw.createdAt === 'string' ? raw.createdAt : undefined,
+    updatedAt: typeof raw.updatedAt === 'string' ? raw.updatedAt : undefined,
+    lastPrice: toOptionalNumber(raw.lastPrice ?? raw.latestPrice),
+    lastBsr: toOptionalNumber(raw.lastBsr ?? raw.latestBsr),
+    lastBsrSubcategoryRank: toOptionalNumber(
+      raw.lastBsrSubcategoryRank ?? raw.latestBsrSubcategoryRank
+    ),
+    lastInventory: toOptionalNumber(raw.lastInventory ?? raw.latestInventory),
+    totalReviews: toOptionalNumber(raw.totalReviews ?? raw.latestTotalReviews),
+    avgRating: toOptionalNumber(raw.avgRating ?? raw.latestAvgRating),
+  };
+}
+
 /**
  * ASIN创建/更新时的监控配置
  */
@@ -67,17 +102,22 @@ export async function fetchAsins(
   if (groupId !== undefined && groupId !== null) {
     params.append('groupId', groupId.toString());
   }
-  return apiRequest<PageResponse<AsinResponse>>(`/api/asin?${params}`);
+  const raw = await apiRequest<PageResponse<Record<string, unknown>>>(`/api/asin?${params}`);
+  return {
+    ...raw,
+    items: (raw.items ?? []).map((item) => mapAsinResponse(item as Record<string, unknown>)),
+  };
 }
 
 /**
  * 创建新ASIN监控
  */
 export async function createAsin(data: CreateAsinDto): Promise<AsinResponse> {
-  return apiRequest<AsinResponse>('/api/asin', {
+  const raw = await apiRequest<Record<string, unknown>>('/api/asin', {
     method: 'POST',
     body: JSON.stringify(data),
   });
+  return mapAsinResponse(raw);
 }
 
 /**
@@ -86,10 +126,11 @@ export async function createAsin(data: CreateAsinDto): Promise<AsinResponse> {
 export async function updateAsin(id: number, data: UpdateAsinDto): Promise<AsinResponse> {
   // 注意: 原有端点为 /api/asin/{id}/config,需确认后端是否支持整体更新
   // 若不支持,则分别调用 /api/asin/{id} 和 /api/asin/{id}/config
-  return apiRequest<AsinResponse>(`/api/asin/${id}`, {
+  const raw = await apiRequest<Record<string, unknown>>(`/api/asin/${id}`, {
     method: 'PUT',
     body: JSON.stringify(data),
   });
+  return mapAsinResponse(raw);
 }
 
 /**
@@ -105,7 +146,8 @@ export async function deleteAsin(id: number): Promise<void> {
  * 获取ASIN详情
  */
 export async function fetchAsinDetail(id: number): Promise<AsinResponse> {
-  return apiRequest<AsinResponse>(`/api/asin/${id}`);
+  const raw = await apiRequest<Record<string, unknown>>(`/api/asin/${id}`);
+  return mapAsinResponse(raw);
 }
 
 // 注意: fetchLatestSnapshot 已在详情页最新逻辑替换为直接合并 /by-asin 快照 + 历史点
