@@ -111,6 +111,9 @@ export interface AsinHistorySnapshot {
   couponValue?: string | null;
   isLightningDeal?: boolean;
   snapshotAt: string;
+  title?: string;
+  bulletPoints?: string;
+  aplusMd5?: string;
 }
 
 // 为图表消费的通用 HistoryPoint（保持旧结构，但由 AsinHistoryPoint 映射）
