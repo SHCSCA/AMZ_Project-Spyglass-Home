@@ -56,6 +56,7 @@ export interface AlertItem {
   asinId: number;
   asin: string; // 映射 asinCode
   type: string; // 映射 alertType
+  typeLabel?: string;
   createdAt: string; // 映射 alertAt
   message: string;
   oldValue?: string;

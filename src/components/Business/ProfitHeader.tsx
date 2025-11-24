@@ -25,6 +25,7 @@ const ProfitHeader: React.FC<ProfitHeaderProps> = ({ asinInfo, snapshot, cost, l
   const bsr = snapshot?.bsr ?? asinInfo?.lastBsr ?? null;
   const bsrSubRank = snapshot?.bsrSubcategoryRank ?? asinInfo?.lastBsrSubcategoryRank ?? null;
   const couponValue = snapshot?.couponValue ?? null;
+  const isLightningDeal = snapshot?.isLightningDeal ?? false;
 
     const purchaseCost = cost?.purchaseCost ?? 0;
     const shippingCost = cost?.shippingCost ?? 0;
@@ -88,6 +89,7 @@ const ProfitHeader: React.FC<ProfitHeaderProps> = ({ asinInfo, snapshot, cost, l
                 <SemanticTag tone="info">{asinInfo.site}</SemanticTag>
               ) : null}
               {couponValue ? <SemanticTag tone="positive">Coupon {couponValue}</SemanticTag> : null}
+              {isLightningDeal ? <SemanticTag tone="warning">秒杀中</SemanticTag> : null}
             </Space>
           </div>
           <Typography.Paragraph type="secondary" style={{ maxWidth: 480 }}>

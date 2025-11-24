@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import dayjs, { Dayjs } from 'dayjs';
 import { ArrowLeftOutlined } from '@ant-design/icons';
@@ -122,13 +122,14 @@ const AsinDetailPage: React.FC = () => {
   const [costModalOpen, setCostModalOpen] = useState(false);
   const [savingCost, setSavingCost] = useState(false);
   const [optimisticKeyword, setOptimisticKeyword] = useState<string | null>(null);
+  const [historyPage, setHistoryPage] = useState(1);
   const [alertPage, setAlertPage] = useState(1);
   const [alertType, setAlertType] = useState<string | undefined>();
   const [fromDate, setFromDate] = useState<Dayjs | null>(dayjs().subtract(DEFAULT_ALERT_RANGE_DAYS, 'day'));
   const [toDate, setToDate] = useState<Dayjs | null>(dayjs());
   const [reviewPage, setReviewPage] = useState(1);
-  const historyPageSize = 200;
-  const alertPageSize = 20;
+  const historyPageSize = 15;
+  const alertPageSize = 15;
   const reviewPageSize = 20;
 
   const {
@@ -187,6 +188,10 @@ const AsinDetailPage: React.FC = () => {
     return undefined;
   }, [asinInfo, asinInfoOrSnapshot, asin]);
 
+  useEffect(() => {
+    setHistoryPage(1);
+  }, [asinId]);
+
   const {
     data: historyResp,
     loading: loadingHistory,
@@ -194,9 +199,9 @@ const AsinDetailPage: React.FC = () => {
   } = useFetch<PageResponse<AsinHistoryPoint>>(
     () =>
       asinId
-        ? fetchHistory(asinId, historyRange, 0, historyPageSize)
+        ? fetchHistory(asinId, historyRange, historyPage - 1, historyPageSize)
         : Promise.resolve(emptyPage as PageResponse<AsinHistoryPoint>),
-    [asinId, historyRange]
+    [asinId, historyRange, historyPage]
   );
 
   const {
@@ -351,8 +356,25 @@ const AsinDetailPage: React.FC = () => {
     [asinCode, reloadKeywords, reloadKeywordTrend]
   );
 
+  const handleHistoryPageChange = useCallback(
+    (nextPage: number, nextSize: number) => {
+      if (nextSize !== historyPageSize) return;
+      setHistoryPage(nextPage);
+    },
+    [historyPageSize]
+  );
+
+  const handleAlertPageChange = useCallback(
+    (nextPage: number, nextSize: number) => {
+      if (nextSize !== alertPageSize) return;
+      setAlertPage(nextPage);
+    },
+    [alertPageSize]
+  );
+
   const handleHistoryRangeChange = useCallback((event: RadioChangeEvent) => {
     setHistoryRange(event.target.value);
+    setHistoryPage(1);
   }, []);
 
   const handleKeywordRangeChange = useCallback((event: RadioChangeEvent) => {
@@ -389,7 +411,14 @@ const AsinDetailPage: React.FC = () => {
       </Card>
       <CombinedChart points={sortedHistoryItems} loading={loadingHistory} />
       <Card title="历史数据表格" bodyStyle={{ padding: 0 }}>
-        <HistoryDataTable data={historyItems} loading={loadingHistory} />
+        <HistoryDataTable
+          data={historyItems}
+          loading={loadingHistory}
+          page={historyPage}
+          pageSize={historyPageSize}
+          total={historyResp?.total ?? historyItems.length}
+          onPageChange={handleHistoryPageChange}
+        />
       </Card>
       <Card
         title={`告警记录 (${totalAlerts})`}
@@ -448,7 +477,13 @@ const AsinDetailPage: React.FC = () => {
         ) : errorAlerts ? (
           <ErrorMessage error={errorAlerts} />
         ) : (
-          <AsinAlertsList alerts={alerts} />
+          <AsinAlertsList
+            alerts={alerts}
+            page={alertPage}
+            pageSize={alertPageSize}
+            total={totalAlerts}
+            onPageChange={handleAlertPageChange}
+          />
         )}
       </Card>
     </Space>

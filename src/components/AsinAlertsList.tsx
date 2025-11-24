@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Table, Tag, Typography } from 'antd';
+import { Table, Tag, Typography, Pagination } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { AlertItem } from '../types';
 import dayjs from 'dayjs';
@@ -8,6 +8,10 @@ const { Text } = Typography;
 
 interface Props {
   alerts: AlertItem[];
+  page?: number;
+  pageSize?: number;
+  total?: number;
+  onPageChange?: (page: number, pageSize: number) => void;
 }
 
 // 按日期分组的告警数据
@@ -18,7 +22,7 @@ interface GroupedAlert {
   items: AlertItem[];
 }
 
-const AsinAlertsList: React.FC<Props> = ({ alerts }) => {
+const AsinAlertsList: React.FC<Props> = ({ alerts, page, pageSize, total, onPageChange }) => {
   // 按日期分组告警
   const groupedAlerts = useMemo(() => {
     const grouped = new Map<string, AlertItem[]>();
@@ -36,17 +40,7 @@ const AsinAlertsList: React.FC<Props> = ({ alerts }) => {
       // 提取该日期的所有变化类型
       const changeTypes = new Set<string>();
       items.forEach((item) => {
-        const typeMap: Record<string, string> = {
-          PRICE_CHANGE: '价格',
-          BSR_CHANGE: 'BSR',
-          INVENTORY_CHANGE: '库存',
-          TITLE_CHANGE: '标题',
-          MAIN_IMAGE_CHANGE: '主图',
-          BULLET_POINTS_CHANGE: '五点描述',
-          APLUS_CONTENT_CHANGE: 'A+',
-          NEGATIVE_REVIEW: '负面评论',
-        };
-        const typeName = typeMap[item.type] || item.type;
+        const typeName = item.typeLabel || item.type;
         changeTypes.add(typeName);
       });
 
@@ -96,64 +90,77 @@ const AsinAlertsList: React.FC<Props> = ({ alerts }) => {
   ];
 
   return (
-    <Table
-      dataSource={groupedAlerts}
-      columns={columns}
-      rowKey="date"
-      pagination={false}
-      size="small"
-      expandable={{
-        expandedRowRender: (record: GroupedAlert) => (
-          <div style={{ paddingLeft: 24 }}>
-            {record.items.map((item, idx) => (
-              <div
-                key={idx}
-                style={{
-                  marginBottom: 8,
-                  padding: 8,
-                  background: '#fafafa',
-                  borderRadius: 4,
-                }}
-              >
-                <div style={{ marginBottom: 4 }}>
-                  <Text type="secondary" style={{ fontSize: 12 }}>
-                    {dayjs(item.createdAt).format('HH:mm:ss')}
-                  </Text>
-                  {item.severity && (
-                    <Tag
-                      color={
-                        item.severity === 'HIGH'
-                          ? 'red'
-                          : item.severity === 'MEDIUM'
-                            ? 'orange'
-                            : 'default'
-                      }
-                      style={{ marginLeft: 8 }}
-                    >
-                      {item.severity}
-                    </Tag>
-                  )}
-                </div>
-                <div>{item.message}</div>
-                {(item.oldValue || item.newValue) && (
-                  <div style={{ marginTop: 4, fontSize: 12 }}>
-                    {item.oldValue && <Text type="secondary">旧值: {item.oldValue}</Text>}
-                    {item.oldValue && item.newValue && <Text type="secondary"> → </Text>}
-                    {item.newValue && <Text type="secondary">新值: {item.newValue}</Text>}
-                    {item.changePercent && (
-                      <Text type="secondary" style={{ marginLeft: 8 }}>
-                        ({item.changePercent})
-                      </Text>
+    <>
+      <Table
+        dataSource={groupedAlerts}
+        columns={columns}
+        rowKey="date"
+        pagination={false}
+        size="small"
+        expandable={{
+          expandedRowRender: (record: GroupedAlert) => (
+            <div style={{ paddingLeft: 24 }}>
+              {record.items.map((item, idx) => (
+                <div
+                  key={idx}
+                  style={{
+                    marginBottom: 8,
+                    padding: 8,
+                    background: '#fafafa',
+                    borderRadius: 4,
+                  }}
+                >
+                  <div style={{ marginBottom: 4 }}>
+                    <Text type="secondary" style={{ fontSize: 12 }}>
+                      {dayjs(item.createdAt).format('HH:mm:ss')}
+                    </Text>
+                    {item.severity && (
+                      <Tag
+                        color={
+                          item.severity === 'HIGH'
+                            ? 'red'
+                            : item.severity === 'MEDIUM'
+                              ? 'orange'
+                              : 'default'
+                        }
+                        style={{ marginLeft: 8 }}
+                      >
+                        {item.severity}
+                      </Tag>
                     )}
                   </div>
-                )}
-              </div>
-            ))}
-          </div>
-        ),
-        rowExpandable: (record: GroupedAlert) => record.items.length > 0,
-      }}
-    />
+                  <div>{item.message}</div>
+                  {(item.oldValue || item.newValue) && (
+                    <div style={{ marginTop: 4, fontSize: 12 }}>
+                      {item.oldValue && <Text type="secondary">旧值: {item.oldValue}</Text>}
+                      {item.oldValue && item.newValue && <Text type="secondary"> → </Text>}
+                      {item.newValue && <Text type="secondary">新值: {item.newValue}</Text>}
+                      {item.changePercent && (
+                        <Text type="secondary" style={{ marginLeft: 8 }}>
+                          ({item.changePercent})
+                        </Text>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ),
+          rowExpandable: (record: GroupedAlert) => record.items.length > 0,
+        }}
+      />
+      {page && pageSize && total !== undefined ? (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
+          <Pagination
+            current={page}
+            pageSize={pageSize}
+            total={total}
+            onChange={onPageChange}
+            showSizeChanger={false}
+          />
+        </div>
+      ) : null}
+    </>
   );
 };
 

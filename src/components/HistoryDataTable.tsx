@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useMemo } from 'react';
-import { Table, Modal, Descriptions, Tag } from 'antd';
+import { Table, Modal, Descriptions, Tag, Pagination } from 'antd';
 import { ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { AsinHistoryPoint } from '../types';
@@ -15,18 +15,29 @@ import DiffMatchPatch from 'diff-match-patch';
 interface HistoryDataTableProps {
   data: AsinHistoryPoint[];
   loading?: boolean;
+  page?: number;
+  pageSize?: number;
+  total?: number;
+  onPageChange?: (page: number, pageSize: number) => void;
 }
 
 // 定义变化类型
-type ChangeType = 'up' | 'down' | 'unchanged' | 'new';
+type ChangeDirection = 'up' | 'down' | 'unchanged' | 'new';
 
 interface ChangeIndicator {
-  type: ChangeType;
-  prev?: number | string;
-  current?: number | string;
+  type: ChangeDirection;
+  prev?: number | string | boolean | null;
+  current?: number | string | boolean | null;
 }
 
-const HistoryDataTable: React.FC<HistoryDataTableProps> = ({ data, loading }) => {
+const HistoryDataTable: React.FC<HistoryDataTableProps> = ({
+  data,
+  loading,
+  page,
+  pageSize,
+  total,
+  onPageChange,
+}) => {
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<AsinHistoryPoint | null>(null);
   const [selectedIndex, setSelectedIndex] = useState<number>(-1);
@@ -49,14 +60,28 @@ const HistoryDataTable: React.FC<HistoryDataTableProps> = ({ data, loading }) =>
     return sortedData.map((record, index) => {
       // 上一条数据是时间上更早的(index+1,因为已按时间倒序排列)
       const prev = index < sortedData.length - 1 ? sortedData[index + 1] : null;
+      const hasPrevRecord = Boolean(prev);
 
       const getChange = (
-        current: number | string | undefined | null,
-        previous: number | string | undefined | null,
+        current: number | string | boolean | undefined | null,
+        previous: number | string | boolean | undefined | null,
         isNumeric: boolean = true
       ): ChangeIndicator => {
-        if (!prev || current == null) return { type: 'new' };
-        if (previous == null) return { type: 'new', current };
+        if (!hasPrevRecord) {
+          return { type: 'new', current };
+        }
+
+        if (current == null && previous == null) {
+          return { type: 'unchanged', prev: previous, current };
+        }
+
+        if (current == null) {
+          return { type: 'down', prev: previous, current };
+        }
+
+        if (previous == null) {
+          return { type: 'up', prev: previous, current };
+        }
 
         if (isNumeric) {
           const curr = Number(current);
@@ -64,11 +89,13 @@ const HistoryDataTable: React.FC<HistoryDataTableProps> = ({ data, loading }) =>
           if (curr > prevNum) return { type: 'up', prev: previous, current };
           if (curr < prevNum) return { type: 'down', prev: previous, current };
           return { type: 'unchanged', prev: previous, current };
-        } else {
-          // 字符串比较 (MD5, 文本等)
-          if (current !== previous) return { type: 'up', prev: previous, current }; // 变化标红
-          return { type: 'unchanged', prev: previous, current };
         }
+
+        if (current !== previous) {
+          return { type: 'up', prev: previous, current };
+        }
+
+        return { type: 'unchanged', prev: previous, current };
       };
 
       return {
@@ -84,19 +111,28 @@ const HistoryDataTable: React.FC<HistoryDataTableProps> = ({ data, loading }) =>
           aplusMd5: getChange(record.aplusMd5, prev?.aplusMd5, false),
           title: getChange(record.title, prev?.title, false),
           bulletPoints: getChange(record.bulletPoints, prev?.bulletPoints, false),
+          couponValue: getChange(record.couponValue ?? null, prev?.couponValue ?? null, false),
+          isLightningDeal: getChange(
+            record.isLightningDeal ? '是' : '否',
+            prev?.isLightningDeal ? '是' : '否',
+            false
+          ),
         },
       };
     });
   }, [sortedData]);
 
   const renderChangeIndicator = (
-    value: number | string | undefined | null,
+    value: number | string | boolean | undefined | null,
     change: ChangeIndicator,
     formatter?: (v: number | string) => string
   ) => {
     if (value == null) return '-';
 
-    const displayValue = formatter ? formatter(value) : String(value);
+    const normalized = typeof value === 'boolean' ? String(value) : value;
+    const displayValue = formatter
+      ? formatter(normalized as number | string)
+      : String(value);
 
     if (change.type === 'up') {
       return (
@@ -188,6 +224,22 @@ const HistoryDataTable: React.FC<HistoryDataTableProps> = ({ data, loading }) =>
         renderChangeIndicator(price, record.changes.price, (v) => `$${Number(v).toFixed(2)}`),
     },
     {
+      title: '优惠券',
+      dataIndex: 'couponValue',
+      width: 120,
+      render: (_: string | null | undefined, record) => {
+        const coupon = record.couponValue;
+        const prevCoupon = record.prevRecord?.couponValue;
+        if (coupon) {
+          return <Tag color={coupon !== prevCoupon ? 'green' : 'blue'}>{coupon}</Tag>;
+        }
+        if (prevCoupon) {
+          return <Tag color="volcano">已取消</Tag>;
+        }
+        return '-';
+      },
+    },
+    {
       title: 'BSR排名',
       dataIndex: 'bsr',
       width: 120,
@@ -215,6 +267,23 @@ const HistoryDataTable: React.FC<HistoryDataTableProps> = ({ data, loading }) =>
         renderChangeIndicator(reviews, record.changes.totalReviews, (v) =>
           Number(v).toLocaleString()
         ),
+    },
+    {
+      title: '秒杀',
+      dataIndex: 'isLightningDeal',
+      width: 100,
+      align: 'center',
+      render: (_: unknown, record) => {
+        const isDeal = Boolean(record.isLightningDeal);
+        const wasDeal = Boolean(record.prevRecord?.isLightningDeal);
+        if (isDeal) {
+          return <Tag color="red">秒杀中</Tag>;
+        }
+        if (wasDeal) {
+          return <Tag color="orange">已结束</Tag>;
+        }
+        return '-';
+      },
     },
     {
       title: '主图',
@@ -289,8 +358,19 @@ const HistoryDataTable: React.FC<HistoryDataTableProps> = ({ data, loading }) =>
           style: { cursor: 'pointer' },
         })}
         size="small"
-        scroll={{ x: 1200, y: 600 }}
+        scroll={{ x: 1400, y: 600 }}
       />
+      {page && pageSize && total !== undefined ? (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
+          <Pagination
+            current={page}
+            pageSize={pageSize}
+            total={total}
+            onChange={onPageChange}
+            showSizeChanger={false}
+          />
+        </div>
+      ) : null}
 
       <Modal
         title="快照详情对比"
@@ -326,6 +406,16 @@ const HistoryDataTable: React.FC<HistoryDataTableProps> = ({ data, loading }) =>
               </Descriptions.Item>
               <Descriptions.Item label="评论数">
                 {selectedRecord.totalReviews?.toLocaleString() || '-'}
+              </Descriptions.Item>
+              <Descriptions.Item label="优惠券">
+                {selectedRecord.couponValue ? (
+                  <Tag color="green">{selectedRecord.couponValue}</Tag>
+                ) : (
+                  '-'
+                )}
+              </Descriptions.Item>
+              <Descriptions.Item label="秒杀">
+                {selectedRecord.isLightningDeal ? <Tag color="red">秒杀中</Tag> : '否'}
               </Descriptions.Item>
             </Descriptions>
 

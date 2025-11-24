@@ -19,6 +19,10 @@ const ALERT_TYPE_LABEL: Record<string, string> = {
   BULLET_POINTS: '五点要点变更',
   APLUS_CONTENT: 'A+内容变更',
   NEGATIVE_REVIEW: '新增差评',
+  BSR_CHANGE: 'BSR 变动',
+  PRICE_DROP: '价格下降',
+  PRICE_INCREASE: '价格上涨',
+  INVENTORY_CHANGE: '库存变动',
 };
 
 function buildAlertMessage(r: AlertLogResponse): string {
@@ -64,6 +68,7 @@ export function mapAlertLog(r: AlertLogResponse): AlertItem {
     asinId: r.asinId,
     asin: r.asinCode,
     type: r.alertType,
+    typeLabel: ALERT_TYPE_LABEL[r.alertType] || r.alertType,
     createdAt: r.alertAt,
     message: buildAlertMessage(r),
     oldValue: r.oldValue,
