@@ -259,7 +259,18 @@ const AsinDetailPage: React.FC = () => {
     [asinCode, keywordRange]
   );
 
-  const loadingInitial = loadingInfo || loadingHistory || loadingDetailById;
+  const [historyHasData, setHistoryHasData] = useState(false);
+  useEffect(() => {
+    setHistoryHasData(false);
+  }, [asinId, historyRange]);
+
+  useEffect(() => {
+    if (historyResp) {
+      setHistoryHasData(true);
+    }
+  }, [historyResp]);
+
+  const loadingInitial = loadingInfo || loadingDetailById || (!historyHasData && loadingHistory);
   const error = errorInfo || errorHistory;
 
   const historyItems = useMemo(

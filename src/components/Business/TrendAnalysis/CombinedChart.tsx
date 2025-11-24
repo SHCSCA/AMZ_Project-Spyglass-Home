@@ -17,7 +17,7 @@ const CombinedChart: React.FC<CombinedChartProps> = ({ points, loading, height =
     const sorted = [...points].sort((a, b) => dayjs(a.snapshotAt).valueOf() - dayjs(b.snapshotAt).valueOf());
     const categories = sorted.map((item) => dayjs(item.snapshotAt).format('YYYY-MM-DD HH:mm'));
     const priceData = sorted.map((item) => item.price ?? null);
-    const bsrData = sorted.map((item) => item.bsr ?? null);
+    const subRankData = sorted.map((item) => item.bsrSubcategoryRank ?? null);
     const inventoryData = sorted.map((item) => item.inventory ?? null);
 
     const couponMarkPoints = sorted
@@ -52,7 +52,7 @@ const CombinedChart: React.FC<CombinedChartProps> = ({ points, loading, height =
         trigger: 'axis',
         axisPointer: { type: 'cross' },
       },
-      legend: { data: ['价格', 'BSR 排名', '真实库存'] },
+      legend: { data: ['价格', 'BSR 小类排名', '真实库存'] },
       grid: { left: 50, right: 80, top: 40, bottom: 70 },
       xAxis: { type: 'category', data: categories },
       yAxis: [
@@ -64,7 +64,7 @@ const CombinedChart: React.FC<CombinedChartProps> = ({ points, loading, height =
         },
         {
           type: 'value',
-          name: 'BSR 排名',
+          name: 'BSR 小类排名',
           position: 'right',
           inverse: true,
           min: 1,
@@ -100,9 +100,9 @@ const CombinedChart: React.FC<CombinedChartProps> = ({ points, loading, height =
             : undefined,
         },
         {
-          name: 'BSR 排名',
+          name: 'BSR 小类排名',
           type: 'line' as const,
-          data: bsrData,
+          data: subRankData,
           yAxisIndex: 1,
           smooth: true,
           showSymbol: false,
