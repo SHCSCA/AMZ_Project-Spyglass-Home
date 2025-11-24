@@ -13,6 +13,8 @@ import {
   Select,
   message,
   Empty,
+  Tooltip,
+  Typography,
 } from 'antd';
 import { AsinItem, AlertItem, PageResponse, AlertLogResponse } from '../types';
 import {
@@ -155,13 +157,67 @@ const DashboardPage: React.FC = () => {
       render: (v: string, r: AsinItem) =>
         v ? <Tag color="blue">{v}</Tag> : r.groupId ? <Tag>{r.groupId}</Tag> : '-',
     },
-    { title: '最新价格', dataIndex: 'lastPrice' },
-    { title: '最新BSR', dataIndex: 'lastBsr' },
-    { title: '小类BSR', dataIndex: 'lastBsrSubcategoryRank', render: (v: number) => v ?? '-' },
-    { title: '评论数', dataIndex: 'totalReviews' },
-    { title: '评分', dataIndex: 'avgRating' },
+    {
+      title: '标题',
+      dataIndex: 'lastTitle',
+      width: 200,
+      render: (v: string) => (
+        <Tooltip title={v}>
+          <Typography.Text ellipsis style={{ width: 180, display: 'block' }}>
+            {v || '-'}
+          </Typography.Text>
+        </Tooltip>
+      ),
+    },
+    { title: '最新价格', dataIndex: 'lastPrice', width: 100, render: (v: number) => v ? `$${v}` : '-' },
+    { title: '优惠券', dataIndex: 'lastCouponValue', width: 100, render: (v: string) => v || '-' },
+    { title: '库存', dataIndex: 'lastInventory', width: 80, render: (v: number) => v ?? '-' },
+    { title: '最新BSR', dataIndex: 'lastBsr', width: 100, render: (v: number) => v ? `#${v}` : '-' },
+    {
+      title: '小类BSR',
+      dataIndex: 'lastBsrSubcategoryRank',
+      width: 150,
+      render: (v: number, r: AsinItem) => (
+        <div>
+          {v ? `#${v}` : '-'}
+          {r.lastBsrSubcategory && (
+            <div style={{ fontSize: 12, color: '#999', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {r.lastBsrSubcategory}
+            </div>
+          )}
+        </div>
+      ),
+    },
+    { title: '评论数', dataIndex: 'totalReviews', width: 80 },
+    { title: '评分', dataIndex: 'avgRating', width: 80 },
+    {
+      title: '秒杀',
+      dataIndex: 'lastIsLightningDeal',
+      width: 80,
+      render: (v: boolean) => (v ? <Tag color="red">秒杀</Tag> : '-'),
+    },
+    {
+      title: 'A+',
+      dataIndex: 'lastAplusMd5',
+      width: 80,
+      render: (v: string) => (v ? <Tag color="green">有</Tag> : <Tag>无</Tag>),
+    },
+    {
+      title: '五点',
+      dataIndex: 'lastBulletPoints',
+      width: 100,
+      render: (v: string) => (
+        <Tooltip title={<div style={{ whiteSpace: 'pre-wrap' }}>{v}</div>}>
+          <Typography.Text ellipsis style={{ width: 80, display: 'block', cursor: 'pointer' }}>
+            {v ? '查看' : '-'}
+          </Typography.Text>
+        </Tooltip>
+      ),
+    },
     {
       title: '操作',
+      width: 150,
+      fixed: 'right' as const,
       render: (_: unknown, record: AsinItem) => (
         <Space>
           <Button
@@ -210,6 +266,7 @@ const DashboardPage: React.FC = () => {
         dataSource={enrichedRows.length ? enrichedRows : asinRows}
         columns={columns}
         loading={loadingSnapshots}
+        scroll={{ x: 1600 }}
         locale={{
           emptyText: (
             <Empty

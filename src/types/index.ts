@@ -25,9 +25,16 @@ export interface AsinResponse {
   lastPrice?: number;
   lastBsr?: number;
   lastBsrSubcategoryRank?: number;
+  lastBsrSubcategory?: string; // 小类名称
   lastInventory?: number;
   totalReviews?: number;
   avgRating?: number;
+  lastCouponValue?: string | null;
+  lastIsLightningDeal?: boolean;
+  lastTitle?: string;
+  lastBulletPoints?: string;
+  lastImageMd5?: string;
+  lastAplusMd5?: string;
 }
 
 // 兼容旧命名，供现有组件逐步迁移；后续可直接用 AsinResponse 并做聚合扩展
