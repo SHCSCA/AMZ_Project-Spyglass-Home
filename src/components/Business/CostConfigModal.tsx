@@ -111,16 +111,10 @@ const CostConfigModal: React.FC<CostConfigModalProps> = ({
             max={1}
             step={0.01}
             controls={false}
-            formatter={(value) => `${Number(value ?? 0) * 100}%`}
-            parser={(value) => {
-              if (!value) return 0;
-              const numeric = Number(String(value).replace(/%/g, ''));
-              if (Number.isNaN(numeric)) return 0;
-              return numeric / 100;
-            }}
+            addonAfter="%"
           />
           <Typography.Text type="secondary" style={{ display: 'block', marginTop: 4 }}>
-            输入 6 代表 6% 关税
+            输入 0.06 代表 6% 关税
           </Typography.Text>
         </Form.Item>
         <Form.Item label="其他成本" name="otherCost">

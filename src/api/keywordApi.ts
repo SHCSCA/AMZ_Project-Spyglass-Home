@@ -6,6 +6,12 @@ export interface CreateKeywordDto {
   isTracked?: boolean;
 }
 
+function toNullableNumber(value: unknown): number | null {
+  if (value === null || value === undefined) return null;
+  const num = Number(value);
+  return Number.isFinite(num) ? num : null;
+}
+
 export async function fetchAsinKeywords(asin: string | undefined | null): Promise<AsinKeyword[]> {
   if (!asin) return [];
   const params = new URLSearchParams({ size: '100' });
@@ -15,12 +21,14 @@ export async function fetchAsinKeywords(asin: string | undefined | null): Promis
   return (records as Array<Record<string, unknown>>)
     .map((item, index) => ({
       id: Number(item.id ?? index),
-      keyword: String(item.keyword ?? ''),
-      isTracked: Boolean(item.isTracked ?? true),
-      lastOrganicRank:
-        item.lastOrganicRank ?? item.organicRank ?? item.latestOrganicRank ?? null,
-      lastSponsoredRank:
-        item.lastSponsoredRank ?? item.sponsoredRank ?? item.latestSponsoredRank ?? null,
+      keyword: String(item.keyword ?? '').trim(),
+      isTracked: Boolean(item.isTracked ?? item.tracked ?? true),
+      lastOrganicRank: toNullableNumber(
+        item.lastOrganicRank ?? item.organicRank ?? item.latestOrganicRank
+      ),
+      lastSponsoredRank: toNullableNumber(
+        item.lastSponsoredRank ?? item.sponsoredRank ?? item.latestSponsoredRank
+      ),
       updatedAt: typeof item.updatedAt === 'string' ? item.updatedAt : undefined,
     }))
     .filter((item) => item.keyword.length > 0);
@@ -56,10 +64,12 @@ export async function fetchKeywordRankTrend(
       keywordId: Number(item.keywordId ?? item.id ?? 0),
       keyword: String(item.keyword ?? ''),
       snapshotAt: String(item.snapshotAt ?? item.capturedAt ?? item.measureAt ?? ''),
-      organicRank:
-        item.organicRank ?? item.lastOrganicRank ?? item.latestOrganicRank ?? undefined,
-      sponsoredRank:
-        item.sponsoredRank ?? item.lastSponsoredRank ?? item.latestSponsoredRank ?? undefined,
+      organicRank: toNullableNumber(
+        item.organicRank ?? item.lastOrganicRank ?? item.latestOrganicRank
+      ),
+      sponsoredRank: toNullableNumber(
+        item.sponsoredRank ?? item.lastSponsoredRank ?? item.latestSponsoredRank
+      ),
     }))
     .filter((item) => item.keyword.length > 0 && item.snapshotAt.length > 0);
 }
