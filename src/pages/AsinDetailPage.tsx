@@ -38,6 +38,7 @@ import {
   deleteAsinKeyword,
   fetchAsinKeywords,
   fetchKeywordRankTrend,
+  updateAsinKeyword,
 } from '../api/keywordApi';
 import type {
   AlertLogResponse,
@@ -350,6 +351,32 @@ const AsinDetailPage: React.FC = () => {
     [asinCode, reloadKeywords, reloadKeywordTrend]
   );
 
+  const handleToggleKeywordTracking = useCallback(
+    async (keywordId: number, nextTracked: boolean, keywordText: string) => {
+      if (!asinCode) {
+        message.warning('暂未获取到 ASIN 编码，暂无法更新关键词');
+        throw new Error('missing asin code');
+      }
+      const existingKeyword = keywordText || keywords.find((item) => item.id === keywordId)?.keyword;
+      if (!existingKeyword) {
+        message.warning('暂未找到该关键词记录');
+        throw new Error('missing keyword text');
+      }
+      try {
+        await updateAsinKeyword(asinCode, keywordId, {
+          keyword: existingKeyword,
+          isTracked: nextTracked,
+        });
+        message.success(nextTracked ? '已开启关键词追踪' : '已暂停关键词追踪');
+        await Promise.all([reloadKeywords(), reloadKeywordTrend()]);
+      } catch (err) {
+        message.error('关键词状态更新失败');
+        throw err;
+      }
+    },
+    [asinCode, keywords, reloadKeywords, reloadKeywordTrend]
+  );
+
   const handleDeleteKeyword = useCallback(
     async (keywordId: number) => {
       if (!asinCode) {
@@ -508,6 +535,7 @@ const AsinDetailPage: React.FC = () => {
           loading={loadingKeywords}
           onAddKeyword={handleAddKeyword}
           onDeleteKeyword={handleDeleteKeyword}
+          onToggleTracked={handleToggleKeywordTracking}
           optimisticKeyword={optimisticKeyword}
         />
       </Col>

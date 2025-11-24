@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Button, Card, Empty, Input, List, Popconfirm, Skeleton, Space, Tag, Typography } from 'antd';
+import { Button, Card, Empty, Input, List, Popconfirm, Skeleton, Space, Switch, Tag, Typography } from 'antd';
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import type { AsinKeyword } from '../../types';
 
@@ -8,6 +8,7 @@ interface KeywordManagerProps {
   loading?: boolean;
   onAddKeyword: (keyword: string) => Promise<void> | void;
   onDeleteKeyword: (keywordId: number) => Promise<void> | void;
+  onToggleTracked?: (keywordId: number, nextTracked: boolean, keyword: string) => Promise<void> | void;
   optimisticKeyword?: string | null;
 }
 
@@ -16,10 +17,13 @@ const KeywordManager: React.FC<KeywordManagerProps> = ({
   loading,
   onAddKeyword,
   onDeleteKeyword,
+  onToggleTracked,
   optimisticKeyword,
 }) => {
   const [value, setValue] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [togglingId, setTogglingId] = useState<number | null>(null);
+  const [nextTracked, setNextTracked] = useState<boolean | null>(null);
 
   const handleSubmit = async () => {
     const keyword = value.trim();
@@ -30,6 +34,18 @@ const KeywordManager: React.FC<KeywordManagerProps> = ({
       setValue('');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleToggleTracked = async (item: AsinKeyword, tracked: boolean) => {
+    if (!onToggleTracked) return;
+    setTogglingId(item.id);
+    setNextTracked(tracked);
+    try {
+      await onToggleTracked(item.id, tracked, item.keyword);
+    } finally {
+      setTogglingId(null);
+      setNextTracked(null);
     }
   };
 
@@ -59,13 +75,22 @@ const KeywordManager: React.FC<KeywordManagerProps> = ({
             </Typography.Text>
           </Space>
         </div>
-        <Popconfirm
-          title="确定要删除该关键词吗？"
-          placement="topRight"
-          onConfirm={() => onDeleteKeyword(item.id)}
-        >
-          <Button type="text" danger icon={<DeleteOutlined />} />
-        </Popconfirm>
+        <Space size="middle">
+          <Switch
+            checked={item.id === togglingId && nextTracked !== null ? nextTracked : item.isTracked}
+            onChange={(checked) => handleToggleTracked(item, checked)}
+            checkedChildren="追踪"
+            unCheckedChildren="停用"
+            loading={togglingId === item.id}
+          />
+          <Popconfirm
+            title="确定要删除该关键词吗？"
+            placement="topRight"
+            onConfirm={() => onDeleteKeyword(item.id)}
+          >
+            <Button type="text" danger icon={<DeleteOutlined />} />
+          </Popconfirm>
+        </Space>
       </Card>
     </List.Item>
   );

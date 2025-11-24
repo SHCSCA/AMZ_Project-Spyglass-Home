@@ -6,6 +6,11 @@ export interface CreateKeywordDto {
   isTracked?: boolean;
 }
 
+export interface UpdateKeywordDto {
+  keyword: string;
+  isTracked: boolean;
+}
+
 function toNullableNumber(value: unknown): number | null {
   if (value === null || value === undefined) return null;
   const num = Number(value);
@@ -38,10 +43,24 @@ export async function createAsinKeyword(asin: string, payload: CreateKeywordDto)
   return apiRequest<AsinKeyword>(`/api/v1/asins/${encodeURIComponent(asin)}/keywords`, {
     method: 'POST',
     body: JSON.stringify({
-      isTracked: true,
-      ...payload,
+      isTracked: payload.isTracked ?? true,
+      keyword: payload.keyword,
     }),
   });
+}
+
+export async function updateAsinKeyword(
+  asin: string,
+  keywordId: number,
+  payload: UpdateKeywordDto
+): Promise<AsinKeyword> {
+  return apiRequest<AsinKeyword>(
+    `/api/v1/asins/${encodeURIComponent(asin)}/keywords/${keywordId}`,
+    {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }
+  );
 }
 
 export async function deleteAsinKeyword(asin: string, keywordId: number): Promise<void> {
