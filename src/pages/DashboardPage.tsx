@@ -22,6 +22,7 @@ import {
   createAsin,
   updateAsin,
   deleteAsin,
+  fetchAsinSnapshotByCode,
   CreateAsinDto,
   UpdateAsinDto,
 } from '../api/asinApi';
@@ -70,9 +71,58 @@ const DashboardPage: React.FC = () => {
 
   // 最新指标：后端直接在列表中返回 last* 字段（避免每行额外请求）；若后续需要更精确快照可追加单独聚合端点
   useEffect(() => {
+    let isMounted = true;
     const asinRows: AsinItem[] = data?.items || [];
-    // 直接使用后端聚合字段，不再额外请求 fetchLatestSnapshot（已删除）。
-    setEnrichedRows(asinRows);
+
+    const fetchMissingSnapshots = async () => {
+      // 检查是否缺少关键数据（如标题），如果缺少则尝试补充
+      const rowsToEnrich = asinRows.filter((r) => !r.lastTitle && !r.lastInventory);
+
+      if (rowsToEnrich.length === 0) {
+        setEnrichedRows(asinRows);
+        return;
+      }
+
+      setLoadingSnapshots(true);
+      try {
+        const enriched = await Promise.all(
+          asinRows.map(async (row) => {
+            // 如果已有关键数据，直接返回
+            if (row.lastTitle || row.lastInventory) return row;
+
+            try {
+              const snapshot = await fetchAsinSnapshotByCode(row.asin);
+              return {
+                ...row,
+                lastTitle: snapshot.title,
+                lastPrice: snapshot.price ?? row.lastPrice,
+                lastBsr: snapshot.bsr ?? row.lastBsr,
+                lastInventory: snapshot.inventory ?? row.lastInventory,
+                lastBsrSubcategory: snapshot.bsrSubcategory ?? row.lastBsrSubcategory,
+                lastBsrSubcategoryRank: snapshot.bsrSubcategoryRank ?? row.lastBsrSubcategoryRank,
+                lastCouponValue: snapshot.couponValue ?? row.lastCouponValue,
+                lastIsLightningDeal: snapshot.isLightningDeal ?? row.lastIsLightningDeal,
+                lastBulletPoints: snapshot.bulletPoints ?? row.lastBulletPoints,
+                lastAplusMd5: snapshot.aplusMd5 ?? row.lastAplusMd5,
+              };
+            } catch (e) {
+              // 获取失败则保持原样
+              return row;
+            }
+          })
+        );
+
+        if (isMounted) setEnrichedRows(enriched);
+      } finally {
+        if (isMounted) setLoadingSnapshots(false);
+      }
+    };
+
+    fetchMissingSnapshots();
+
+    return () => {
+      isMounted = false;
+    };
   }, [data]);
 
   const handleAdd = async () => {

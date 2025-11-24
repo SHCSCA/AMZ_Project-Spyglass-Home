@@ -18,7 +18,7 @@ import {
 import type { RadioChangeEvent } from 'antd/es/radio';
 import { DEFAULT_ALERT_RANGE_DAYS } from '../constants/config';
 import { apiRequest } from '../api/client';
-import { fetchAsinDetail } from '../api/asinApi';
+import { fetchAsinDetail, fetchAsinSnapshotByCode } from '../api/asinApi';
 import { ensurePageResponse } from '../api/adapters';
 import { mapAlertLog, mapReview } from '../api';
 import { useFetch } from '../hooks/useFetch';
@@ -67,12 +67,6 @@ const emptyPage = {
   hasNext: false,
   hasPrevious: false,
 };
-
-async function fetchAsinSnapshotByCode(asinCode: string): Promise<AsinHistorySnapshot> {
-  const raw = await apiRequest<AsinHistorySnapshot>(`/api/asin/by-asin/${encodeURIComponent(asinCode)}`);
-  if (!raw) throw new Error(`ASIN ${asinCode} 未找到或无历史快照`);
-  return raw;
-}
 
 async function fetchHistory(
   id: number,

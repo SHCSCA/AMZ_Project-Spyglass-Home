@@ -3,7 +3,7 @@
  */
 
 import { apiRequest } from './client';
-import { PageResponse, AsinResponse } from '../types';
+import { PageResponse, AsinResponse, AsinHistorySnapshot } from '../types';
 
 function toOptionalNumber(value: unknown): number | undefined {
   if (value === null || value === undefined) return undefined;
@@ -34,9 +34,23 @@ function mapAsinResponse(raw: Record<string, unknown>): AsinResponse {
     lastBsrSubcategoryRank: toOptionalNumber(
       raw.lastBsrSubcategoryRank ?? raw.latestBsrSubcategoryRank
     ),
+    lastBsrSubcategory: toOptionalString(
+      raw.lastBsrSubcategory ?? raw.latestBsrSubcategory ?? raw.bsrSubcategory
+    ),
     lastInventory: toOptionalNumber(raw.lastInventory ?? raw.latestInventory),
     totalReviews: toOptionalNumber(raw.totalReviews ?? raw.latestTotalReviews),
     avgRating: toOptionalNumber(raw.avgRating ?? raw.latestAvgRating),
+    lastTitle: toOptionalString(raw.lastTitle ?? raw.latestTitle ?? raw.title),
+    lastBulletPoints: toOptionalString(
+      raw.lastBulletPoints ?? raw.latestBulletPoints ?? raw.bulletPoints
+    ),
+    lastCouponValue: toOptionalString(
+      raw.lastCouponValue ?? raw.latestCouponValue ?? raw.couponValue
+    ),
+    lastIsLightningDeal: Boolean(
+      raw.lastIsLightningDeal ?? raw.latestIsLightningDeal ?? raw.isLightningDeal ?? false
+    ),
+    lastAplusMd5: toOptionalString(raw.lastAplusMd5 ?? raw.latestAplusMd5 ?? raw.aplusMd5),
   };
 }
 
@@ -150,5 +164,13 @@ export async function fetchAsinDetail(id: number): Promise<AsinResponse> {
   return mapAsinResponse(raw);
 }
 
-// 注意: fetchLatestSnapshot 已在详情页最新逻辑替换为直接合并 /by-asin 快照 + 历史点
-// 若仅仪表盘需要，可在未来单独实现。当前未被引用，移除以减少冗余。
+/**
+ * 根据 ASIN 编码获取最新快照
+ */
+export async function fetchAsinSnapshotByCode(asinCode: string): Promise<AsinHistorySnapshot> {
+  const raw = await apiRequest<AsinHistorySnapshot>(
+    `/api/asin/by-asin/${encodeURIComponent(asinCode)}`
+  );
+  if (!raw) throw new Error(`ASIN ${asinCode} 未找到或无历史快照`);
+  return raw;
+}
