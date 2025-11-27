@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { Button, Card, Col, Divider, Row, Space, Tooltip, Typography, message } from 'antd';
 import { CopyOutlined, SettingOutlined } from '@ant-design/icons';
 import type { AsinHistoryPoint, AsinHistorySnapshot, AsinResponse, AsinCost } from '../../types';
+import { parseCouponValue } from '../../utils/coupon';
 import StatCard from '../UI/StatCard';
 import SemanticTag from '../UI/SemanticTag';
 import SkeletonPlaceholder from '../UI/SkeletonPlaceholder';
@@ -88,7 +89,16 @@ const ProfitHeader: React.FC<ProfitHeaderProps> = ({ asinInfo, snapshot, cost, l
               {asinInfo?.site ? (
                 <SemanticTag tone="info">{asinInfo.site}</SemanticTag>
               ) : null}
-              {couponValue ? <SemanticTag tone="positive">Coupon {couponValue}</SemanticTag> : null}
+              {(() => {
+                const coupon = parseCouponValue(couponValue);
+                if (!coupon) return null;
+                const tone = coupon.label.includes('%') ? 'warning' : coupon.label.includes('$') ? 'positive' : 'info';
+                return (
+                  <Tooltip title={coupon.fullText}>
+                    <SemanticTag tone={tone}>{coupon.label}</SemanticTag>
+                  </Tooltip>
+                );
+              })()}
               {isLightningDeal ? <SemanticTag tone="warning">秒杀中</SemanticTag> : null}
             </Space>
           </div>

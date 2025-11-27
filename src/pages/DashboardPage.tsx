@@ -31,6 +31,7 @@ import { fetchGroups, GroupResponse } from '../api/groupApi';
 import { apiRequest } from '../api/client';
 import { ensurePageResponse } from '../api/adapters';
 import { mapAlertLog } from '../api/mappers';
+import { parseCouponValue } from '../utils/coupon';
 import Loading from '../components/Loading';
 import ErrorMessage from '../components/ErrorMessage';
 import { useFetch } from '../hooks/useFetch';
@@ -76,8 +77,9 @@ const DashboardPage: React.FC = () => {
     const asinRows: AsinItem[] = data?.items || [];
 
     const fetchMissingSnapshots = async () => {
-      // 检查是否缺少关键数据（如标题），如果缺少则尝试补充
-      const rowsToEnrich = asinRows.filter((r) => !r.lastTitle && !r.lastInventory);
+      // 检查是否缺少关键数据（如标题、库存、价格），如果缺少则尝试补充
+      // 使用宽松检查：只要缺其中一项就尝试获取快照
+      const rowsToEnrich = asinRows.filter((r) => !r.lastTitle || r.lastInventory == null || r.lastPrice == null);
 
       if (rowsToEnrich.length === 0) {
         setEnrichedRows(asinRows);
@@ -89,7 +91,7 @@ const DashboardPage: React.FC = () => {
         const enriched = await Promise.all(
           asinRows.map(async (row) => {
             // 如果已有关键数据，直接返回
-            if (row.lastTitle || row.lastInventory) return row;
+            if (row.lastTitle && row.lastInventory != null && row.lastPrice != null) return row;
 
             try {
               const snapshot = await fetchAsinSnapshotByCode(row.asin);
@@ -251,13 +253,17 @@ const DashboardPage: React.FC = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           <Space size={4}>
             <Typography.Text strong>{price ? `$${price}` : '-'}</Typography.Text>
-            {record.lastCouponValue && (
-              <Tooltip title={`Coupon: ${record.lastCouponValue}`}>
-                <Tag color="green" style={{ margin: 0, fontSize: 10, lineHeight: '16px', padding: '0 4px' }}>
-                  券
-                </Tag>
-              </Tooltip>
-            )}
+            {(() => {
+              const coupon = parseCouponValue(record.lastCouponValue);
+              if (!coupon) return null;
+              return (
+                <Tooltip title={`Coupon: ${coupon.fullText}`}>
+                  <Tag color={coupon.color} style={{ margin: 0, fontSize: 10, lineHeight: '16px', padding: '0 4px' }}>
+                    {coupon.label}
+                  </Tag>
+                </Tooltip>
+              );
+            })()}
             {record.lastIsLightningDeal && (
               <Tooltip title="秒杀进行中">
                 <ThunderboltFilled style={{ color: '#faad14' }} />

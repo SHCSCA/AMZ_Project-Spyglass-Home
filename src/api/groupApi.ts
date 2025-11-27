@@ -46,7 +46,6 @@ export async function createGroup(data: CreateGroupDto): Promise<GroupResponse> 
 
 /**
  * 更新分组信息
- * 注意：Swagger 文档中暂未列出此接口，若后端未实现可能会返回 404/405
  */
 export async function updateGroup(id: number, data: UpdateGroupDto): Promise<GroupResponse> {
   return apiRequest<GroupResponse>(`/api/groups/${id}`, {
@@ -57,7 +56,6 @@ export async function updateGroup(id: number, data: UpdateGroupDto): Promise<Gro
 
 /**
  * 删除分组
- * 注意：Swagger 文档中暂未列出此接口，若后端未实现可能会返回 404/405
  */
 export async function deleteGroup(id: number): Promise<void> {
   await apiRequest(`/api/groups/${id}`, {

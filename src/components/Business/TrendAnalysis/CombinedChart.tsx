@@ -3,6 +3,7 @@ import dayjs from 'dayjs';
 import { Empty, Skeleton } from 'antd';
 import type { EChartsOption } from 'echarts';
 import type { AsinHistoryPoint } from '../../../types';
+import { parseCouponValue } from '../../../utils/coupon';
 import ReactECharts from '../../../pages/ReactEChartsLazy';
 
 interface CombinedChartProps {
@@ -21,14 +22,30 @@ const CombinedChart: React.FC<CombinedChartProps> = ({ points, loading, height =
     const inventoryData = sorted.map((item) => item.inventory ?? null);
 
     const couponMarkPoints = sorted
-      .filter((item) => item.couponValue)
-      .map((item) => ({
-        coord: [dayjs(item.snapshotAt).format('YYYY-MM-DD HH:mm'), item.price ?? 0],
-        name: 'coupon',
-        value: '券',
-        itemStyle: { color: '#10B981' },
-        tooltip: { formatter: () => `优惠券 ${item.couponValue}` },
-      }));
+      .map((item) => {
+        const coupon = parseCouponValue(item.couponValue);
+        if (!coupon) return null;
+        
+        const isLong = coupon.label.length > 1; // $5 is 2 chars, 5% is 2 chars. '促' is 1.
+        
+        return {
+          coord: [dayjs(item.snapshotAt).format('YYYY-MM-DD HH:mm'), item.price ?? 0],
+          name: 'coupon',
+          value: coupon.label,
+          itemStyle: { color: coupon.color },
+          // Use roundRect (tag style) for values, pin for generic icon
+          symbol: isLong ? 'roundRect' : 'pin',
+          symbolSize: isLong ? [36, 20] : 30,
+          symbolOffset: isLong ? [0, -15] : [0, 0],
+          label: {
+            fontSize: 10,
+            color: '#fff',
+            padding: [0, 2]
+          },
+          tooltip: { formatter: () => `优惠信息: ${coupon.fullText}` },
+        };
+      })
+      .filter((item): item is NonNullable<typeof item> => !!item);
 
     const dealRanges: { start: string; end: string }[] = [];
     let currentRange: { start: string; end: string } | null = null;

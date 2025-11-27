@@ -30,7 +30,8 @@ const RankingChart: React.FC<RankingChartProps> = ({ points, loading, height = 3
       }
       const series = seriesMap.get(point.keywordId);
       if (!series) return;
-      series.data[idx] = point.organicRank ?? point.sponsoredRank ?? null;
+      // 只展示自然排名，不回退到广告排名
+      series.data[idx] = point.organicRank ?? null;
     });
 
     const series = Array.from(seriesMap.values()).map((item) => ({

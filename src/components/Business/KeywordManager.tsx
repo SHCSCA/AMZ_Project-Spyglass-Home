@@ -78,12 +78,11 @@ const KeywordManager: React.FC<KeywordManagerProps> = ({
             {item.keyword}
           </Typography.Text>
           <Space size="small" style={{ display: 'flex', marginTop: 8 }}>
-            <Tag color="processing">
-              自然排名: {item.lastOrganicRank !== null && item.lastOrganicRank !== undefined ? `#${item.lastOrganicRank}` : '—'}
-            </Tag>
-            <Tag color="purple">
-              广告排名: {item.lastSponsoredRank !== null && item.lastSponsoredRank !== undefined ? `#${item.lastSponsoredRank}` : '—'}
-            </Tag>
+            <Tooltip title={(!item.lastOrganicRank || item.lastOrganicRank === -1) ? "只抓取前三页数据" : undefined}>
+              <Tag color="processing">
+                自然排名: {item.lastOrganicRank && item.lastOrganicRank !== -1 ? `#${item.lastOrganicRank}` : '未上榜'}
+              </Tag>
+            </Tooltip>
             <Tag color={item.isTracked ? 'success' : 'default'}>
               {item.isTracked ? '追踪中' : '已停用'}
             </Tag>

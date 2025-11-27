@@ -414,7 +414,20 @@ const AsinDetailPage: React.FC = () => {
   }, []);
 
   if (loadingInitial) return <Loading />;
-  if (error) return <ErrorMessage error={error} />;
+  if (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    if (msg.includes('404')) {
+      return (
+        <div style={{ padding: '40px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <Empty description="未找到该 ASIN 数据，可能尚未抓取或已被删除" />
+          <Button type="primary" onClick={() => navigate('/')} style={{ marginTop: 16 }}>
+            返回首页
+          </Button>
+        </div>
+      );
+    }
+    return <ErrorMessage error={error} />;
+  }
 
   const trendTab = (
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
