@@ -228,7 +228,7 @@ const DashboardPage: React.FC = () => {
       width: 100,
       render: (val: number | undefined, record: AsinItem) => {
         if (val === undefined || val === null) return '-';
-        const isLow = record.inventoryThreshold && val < record.inventoryThreshold;
+        const isLow = record.inventoryThreshold != null && val < record.inventoryThreshold;
         const isLimited = record.inventoryLimited;
         
         return (

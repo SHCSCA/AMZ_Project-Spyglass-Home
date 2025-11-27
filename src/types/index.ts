@@ -32,6 +32,18 @@ export interface AsinResponse {
   couponValue?: string;        // e.g. "$10 off"
   isLightningDeal?: boolean;   // e.g. true
   inventoryLimited?: boolean;  // e.g. true (表示遭遇限购)
+
+  // 前端聚合使用的字段 (DashboardPage enriched rows)
+  lastTitle?: string;
+  lastPrice?: number;
+  lastInventory?: number;
+  lastBsr?: number;
+  lastBsrSubcategory?: string;
+  lastBsrSubcategoryRank?: number;
+  lastBulletPoints?: string;
+  lastAplusMd5?: string;
+  lastCouponValue?: string;
+  lastIsLightningDeal?: boolean;
 }
 
 // 兼容旧命名，供现有组件逐步迁移；后续可直接用 AsinResponse 并做聚合扩展
@@ -69,6 +81,7 @@ export interface AlertItem {
   severity?: string;
   // status 字段后端暂未实现，保留可选以兼容 UI 标记逻辑
   status?: string;
+  contextJson?: string;
 }
 
 // 历史快照点（AsinHistoryResponse）

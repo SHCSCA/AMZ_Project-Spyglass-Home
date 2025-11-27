@@ -14,6 +14,7 @@ import {
   Space,
   Tabs,
   Typography,
+  Empty,
 } from 'antd';
 import type { RadioChangeEvent } from 'antd/es/radio';
 import { DEFAULT_ALERT_RANGE_DAYS } from '../constants/config';
