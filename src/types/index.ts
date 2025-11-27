@@ -28,6 +28,10 @@ export interface AsinResponse {
   latestTotalReviews?: number;
   latestAvgRating?: number;
   
+  // 兼容旧字段名或直接映射
+  totalReviews?: number;
+  avgRating?: number;
+  
   // ★★★ 必须新增以下字段适配 V2.1 促销抓取 ★★★
   couponValue?: string;        // e.g. "$10 off"
   isLightningDeal?: boolean;   // e.g. true
