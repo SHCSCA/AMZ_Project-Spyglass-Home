@@ -16,6 +16,7 @@ import {
   Tooltip,
   Typography,
 } from 'antd';
+import { ThunderboltFilled, WarningOutlined } from '@ant-design/icons';
 import { AsinItem, AlertItem, PageResponse, AlertLogResponse } from '../types';
 import {
   fetchAsins,
@@ -219,10 +220,56 @@ const DashboardPage: React.FC = () => {
         </Tooltip>
       ),
     },
-    { title: '最新价格', dataIndex: 'lastPrice', width: 100, render: (v: number) => v ? `$${v}` : '-' },
-    { title: '优惠券', dataIndex: 'lastCouponValue', width: 100, render: (v: string) => v || '-' },
-    { title: '库存', dataIndex: 'lastInventory', width: 80, render: (v: number) => v ?? '-' },
-    { title: '最新BSR', dataIndex: 'lastBsr', width: 100, render: (v: number) => v ? `#${v}` : '-' },
+    {
+      title: '库存',
+      dataIndex: 'lastInventory',
+      width: 100,
+      render: (val: number | undefined, record: AsinItem) => {
+        if (val === undefined || val === null) return '-';
+        const isLow = record.inventoryThreshold && val < record.inventoryThreshold;
+        const isLimited = record.inventoryLimited;
+        
+        return (
+          <Space size={4}>
+            <Typography.Text type={isLow ? 'danger' : undefined} strong={isLow}>
+              {val > 999 ? '999+' : val}
+            </Typography.Text>
+            {isLimited && (
+              <Tooltip title="检测到限购，库存可能不准确">
+                <WarningOutlined style={{ color: '#faad14', fontSize: 12 }} />
+              </Tooltip>
+            )}
+          </Space>
+        );
+      },
+    },
+    {
+      title: '价格 / BSR',
+      dataIndex: 'lastPrice',
+      width: 160,
+      render: (price: number | undefined, record: AsinItem) => (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Space size={4}>
+            <Typography.Text strong>{price ? `$${price}` : '-'}</Typography.Text>
+            {record.lastCouponValue && (
+              <Tooltip title={`Coupon: ${record.lastCouponValue}`}>
+                <Tag color="green" style={{ margin: 0, fontSize: 10, lineHeight: '16px', padding: '0 4px' }}>
+                  券
+                </Tag>
+              </Tooltip>
+            )}
+            {record.lastIsLightningDeal && (
+              <Tooltip title="秒杀进行中">
+                <ThunderboltFilled style={{ color: '#faad14' }} />
+              </Tooltip>
+            )}
+          </Space>
+          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+            {record.lastBsr ? `#${record.lastBsr}` : '-'}
+          </Typography.Text>
+        </div>
+      ),
+    },
     {
       title: '小类BSR',
       dataIndex: 'lastBsrSubcategoryRank',
@@ -240,12 +287,6 @@ const DashboardPage: React.FC = () => {
     },
     { title: '评论数', dataIndex: 'totalReviews', width: 80 },
     { title: '评分', dataIndex: 'avgRating', width: 80 },
-    {
-      title: '秒杀',
-      dataIndex: 'lastIsLightningDeal',
-      width: 80,
-      render: (v: boolean) => (v ? <Tag color="red">秒杀</Tag> : '-'),
-    },
     {
       title: 'A+',
       dataIndex: 'lastAplusMd5',

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Button, Card, Empty, Input, List, Popconfirm, Skeleton, Space, Switch, Tag, Typography } from 'antd';
-import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
+import { Button, Card, Empty, Input, List, Popconfirm, Skeleton, Space, Switch, Tag, Typography, Tooltip, message } from 'antd';
+import { DeleteOutlined, PlusOutlined, SyncOutlined } from '@ant-design/icons';
 import type { AsinKeyword } from '../../types';
+import { trackKeywordNow } from '../../api/keywordApi';
 
 interface KeywordManagerProps {
   keywords: AsinKeyword[];
@@ -10,6 +11,7 @@ interface KeywordManagerProps {
   onDeleteKeyword: (keywordId: number) => Promise<void> | void;
   onToggleTracked?: (keywordId: number, nextTracked: boolean, keyword: string) => Promise<void> | void;
   optimisticKeyword?: string | null;
+  asin?: string;
 }
 
 const KeywordManager: React.FC<KeywordManagerProps> = ({
@@ -19,11 +21,13 @@ const KeywordManager: React.FC<KeywordManagerProps> = ({
   onDeleteKeyword,
   onToggleTracked,
   optimisticKeyword,
+  asin,
 }) => {
   const [value, setValue] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [togglingId, setTogglingId] = useState<number | null>(null);
   const [nextTracked, setNextTracked] = useState<boolean | null>(null);
+  const [trackingId, setTrackingId] = useState<number | null>(null);
 
   const handleSubmit = async () => {
     const keyword = value.trim();
@@ -46,6 +50,19 @@ const KeywordManager: React.FC<KeywordManagerProps> = ({
     } finally {
       setTogglingId(null);
       setNextTracked(null);
+    }
+  };
+
+  const handleTrackNow = async (item: AsinKeyword) => {
+    if (!asin) return;
+    setTrackingId(item.id);
+    try {
+      await trackKeywordNow(asin, item.id);
+      message.success('已触发立即抓取，请稍后刷新查看结果');
+    } catch (err) {
+      message.error('触发抓取失败');
+    } finally {
+      setTrackingId(null);
     }
   };
 
@@ -76,6 +93,14 @@ const KeywordManager: React.FC<KeywordManagerProps> = ({
           </Space>
         </div>
         <Space size="middle">
+          <Tooltip title="立即检测排名 (约10-30秒)">
+            <Button 
+              type="text" 
+              icon={<SyncOutlined spin={trackingId === item.id} />} 
+              onClick={() => handleTrackNow(item)}
+              disabled={trackingId !== null}
+            />
+          </Tooltip>
           <Switch
             checked={item.id === togglingId && nextTracked !== null ? nextTracked : item.isTracked}
             onChange={(checked) => handleToggleTracked(item, checked)}

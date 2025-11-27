@@ -40,6 +40,13 @@ export async function fetchAsinCost(asin: string | undefined | null): Promise<As
   }
 }
 
+export async function fetchAsinProfit(asin: string, price: number): Promise<number | null> {
+  const res = await apiRequest<{ profit: number }>(
+    `/api/v1/asins/${encodeURIComponent(asin)}/costs/calculate-profit?price=${price}`
+  );
+  return res.profit;
+}
+
 export async function upsertAsinCost(asin: string, payload: UpsertAsinCostRequest): Promise<AsinCost> {
   const saved = await apiRequest<AsinCost | Record<string, unknown>>(
     `/api/v1/asins/${encodeURIComponent(asin)}/costs`,

@@ -21,20 +21,17 @@ export interface AsinResponse {
   groupName?: string;
   createdAt?: string;
   updatedAt?: string;
-  // 聚合的最新快照指标
-  lastPrice?: number;
-  lastBsr?: number;
-  lastBsrSubcategoryRank?: number;
-  lastBsrSubcategory?: string; // 小类名称
-  lastInventory?: number;
-  totalReviews?: number;
-  avgRating?: number;
-  lastCouponValue?: string | null;
-  lastIsLightningDeal?: boolean;
-  lastTitle?: string;
-  lastBulletPoints?: string;
-  lastImageMd5?: string;
-  lastAplusMd5?: string;
+  // V2.1 新增：快照数据映射
+  latestPrice?: string;        // 后端返回的是 String 类型的数值
+  latestInventory?: number;    // 999加购法获取的库存
+  latestBsr?: string;
+  latestTotalReviews?: number;
+  latestAvgRating?: number;
+  
+  // ★★★ 必须新增以下字段适配 V2.1 促销抓取 ★★★
+  couponValue?: string;        // e.g. "$10 off"
+  isLightningDeal?: boolean;   // e.g. true
+  inventoryLimited?: boolean;  // e.g. true (表示遭遇限购)
 }
 
 // 兼容旧命名，供现有组件逐步迁移；后续可直接用 AsinResponse 并做聚合扩展

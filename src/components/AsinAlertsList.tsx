@@ -100,50 +100,70 @@ const AsinAlertsList: React.FC<Props> = ({ alerts, page, pageSize, total, onPage
         expandable={{
           expandedRowRender: (record: GroupedAlert) => (
             <div style={{ paddingLeft: 24 }}>
-              {record.items.map((item, idx) => (
-                <div
-                  key={idx}
-                  style={{
-                    marginBottom: 8,
-                    padding: 8,
-                    background: '#fafafa',
-                    borderRadius: 4,
-                  }}
-                >
-                  <div style={{ marginBottom: 4 }}>
-                    <Text type="secondary" style={{ fontSize: 12 }}>
-                      {dayjs(item.createdAt).format('HH:mm:ss')}
-                    </Text>
-                    {item.severity && (
-                      <Tag
-                        color={
-                          item.severity === 'HIGH'
-                            ? 'red'
-                            : item.severity === 'MEDIUM'
-                              ? 'orange'
-                              : 'default'
-                        }
-                        style={{ marginLeft: 8 }}
-                      >
-                        {item.severity}
-                      </Tag>
-                    )}
-                  </div>
-                  <div>{item.message}</div>
-                  {(item.oldValue || item.newValue) && (
-                    <div style={{ marginTop: 4, fontSize: 12 }}>
-                      {item.oldValue && <Text type="secondary">旧值: {item.oldValue}</Text>}
-                      {item.oldValue && item.newValue && <Text type="secondary"> → </Text>}
-                      {item.newValue && <Text type="secondary">新值: {item.newValue}</Text>}
-                      {item.changePercent && (
-                        <Text type="secondary" style={{ marginLeft: 8 }}>
-                          ({item.changePercent})
-                        </Text>
+              {record.items.map((item, idx) => {
+                let reviewText = '';
+                if (item.type === 'NEGATIVE_REVIEW' || item.type === 'REVIEW_NEGATIVE') {
+                  if (item.contextJson) {
+                    try {
+                      const ctx = JSON.parse(item.contextJson);
+                      reviewText = ctx.reviewText || '';
+                    } catch (e) {
+                      // ignore
+                    }
+                  }
+                }
+
+                return (
+                  <div
+                    key={idx}
+                    style={{
+                      marginBottom: 8,
+                      padding: 8,
+                      background: '#fafafa',
+                      borderRadius: 4,
+                    }}
+                  >
+                    <div style={{ marginBottom: 4 }}>
+                      <Text type="secondary" style={{ fontSize: 12 }}>
+                        {dayjs(item.createdAt).format('HH:mm:ss')}
+                      </Text>
+                      {item.severity && (
+                        <Tag
+                          color={
+                            item.severity === 'HIGH'
+                              ? 'red'
+                              : item.severity === 'MEDIUM'
+                                ? 'orange'
+                                : 'default'
+                          }
+                          style={{ marginLeft: 8 }}
+                        >
+                          {item.severity}
+                        </Tag>
                       )}
                     </div>
-                  )}
-                </div>
-              ))}
+                    <div>{item.message}</div>
+                    {reviewText && (
+                      <div style={{ marginTop: 8, padding: 8, background: '#fff', border: '1px solid #f0f0f0', borderRadius: 4 }}>
+                        <Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>评论内容：</Text>
+                        <div style={{ fontSize: 13, color: '#595959', whiteSpace: 'pre-wrap' }}>{reviewText}</div>
+                      </div>
+                    )}
+                    {(item.oldValue || item.newValue) && (
+                      <div style={{ marginTop: 4, fontSize: 12 }}>
+                        {item.oldValue && <Text type="secondary">旧值: {item.oldValue}</Text>}
+                        {item.oldValue && item.newValue && <Text type="secondary"> → </Text>}
+                        {item.newValue && <Text type="secondary">新值: {item.newValue}</Text>}
+                        {item.changePercent && (
+                          <Text type="secondary" style={{ marginLeft: 8 }}>
+                            ({item.changePercent})
+                          </Text>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           ),
           rowExpandable: (record: GroupedAlert) => record.items.length > 0,

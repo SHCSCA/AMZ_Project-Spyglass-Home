@@ -69,6 +69,12 @@ export async function deleteAsinKeyword(asin: string, keywordId: number): Promis
   });
 }
 
+export async function trackKeywordNow(asin: string, keywordId: number): Promise<void> {
+  await apiRequest(`/api/v1/asins/${encodeURIComponent(asin)}/keywords/${keywordId}/track-now`, {
+    method: 'POST',
+  });
+}
+
 export async function fetchKeywordHistory(
   asin: string,
   keywordId: number

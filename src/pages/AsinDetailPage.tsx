@@ -531,6 +531,7 @@ const AsinDetailPage: React.FC = () => {
           onDeleteKeyword={handleDeleteKeyword}
           onToggleTracked={handleToggleKeywordTracking}
           optimisticKeyword={optimisticKeyword}
+          asin={asinCode}
         />
       </Col>
       <Col xs={24} lg={14}>
