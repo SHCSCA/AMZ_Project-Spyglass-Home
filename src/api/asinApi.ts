@@ -138,9 +138,8 @@ export async function createAsin(data: CreateAsinDto): Promise<AsinResponse> {
  * 更新ASIN配置
  */
 export async function updateAsin(id: number, data: UpdateAsinDto): Promise<AsinResponse> {
-  // 注意: 原有端点为 /api/asin/{id}/config,需确认后端是否支持整体更新
-  // 若不支持,则分别调用 /api/asin/{id} 和 /api/asin/{id}/config
-  const raw = await apiRequest<Record<string, unknown>>(`/api/asin/${id}`, {
+  // 修正: 使用 /api/asin/{id}/config 接口更新配置
+  const raw = await apiRequest<Record<string, unknown>>(`/api/asin/${id}/config`, {
     method: 'PUT',
     body: JSON.stringify(data),
   });
