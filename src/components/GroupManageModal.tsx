@@ -4,8 +4,8 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Modal, Table, Button, Form, Input, Space, Popconfirm, message, Divider } from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
+import { Modal, Table, Button, Form, Input, Space, Popconfirm, message, Divider, Tooltip } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined, SaveOutlined, CloseOutlined } from '@ant-design/icons';
 import { useFetch } from '../hooks/useFetch';
 import { fetchGroups, createGroup, updateGroup, deleteGroup, GroupResponse } from '../api';
 import Loading from './Loading';
@@ -96,61 +96,45 @@ const GroupManageModal: React.FC<GroupManageModalProps> = ({ open, onClose, onGr
       dataIndex: 'name',
       render: (name: string, record: GroupResponse) =>
         editingId === record.id ? (
-          <Input defaultValue={name} onChange={(e) => form.setFieldValue('name', e.target.value)} />
+          <Input defaultValue={name} onChange={(e) => form.setFieldValue('name', e.target.value)} onPressEnter={() => handleSaveEdit(record.id)} />
         ) : (
           name
         ),
     },
     {
-      title: 'ASIN数量',
+      title: 'ASIN 数量',
       dataIndex: 'asinCount',
       width: 100,
-      render: (count: number) => count || 0,
-    },
-    {
-      title: '创建时间',
-      dataIndex: 'createdAt',
-      width: 180,
-      render: (time: string) => time?.slice(0, 16) || '-',
+      align: 'center' as const,
     },
     {
       title: '操作',
-      width: 200,
-      render: (_: unknown, record: GroupResponse) =>
-        editingId === record.id ? (
-          <Space>
-            <Button type="link" size="small" onClick={() => handleSaveEdit(record.id)}>
-              保存
-            </Button>
-            <Button
-              type="link"
-              size="small"
-              onClick={() => {
-                setEditingId(null);
-                form.resetFields();
-              }}
-            >
-              取消
-            </Button>
+      key: 'action',
+      width: 150,
+      render: (_: unknown, record: GroupResponse) => {
+        const isEditing = editingId === record.id;
+        return isEditing ? (
+          <Space size="small">
+            <Tooltip title="保存">
+              <Button type="primary" size="small" icon={<SaveOutlined />} onClick={() => handleSaveEdit(record.id)} />
+            </Tooltip>
+            <Tooltip title="取消">
+              <Button size="small" icon={<CloseOutlined />} onClick={() => setEditingId(null)} />
+            </Tooltip>
           </Space>
         ) : (
-          <Space>
-            <Button type="link" size="small" onClick={() => handleEdit(record)}>
-              编辑
-            </Button>
-            <Popconfirm
-              title="确认删除该分组?"
-              description="删除后该分组下的ASIN将变为未分组状态"
-              onConfirm={() => handleDelete(record.id)}
-              okText="确认"
-              cancelText="取消"
-            >
-              <Button danger type="link" size="small">
-                删除
-              </Button>
+          <Space size="small">
+            <Tooltip title="编辑">
+              <Button type="text" size="small" icon={<EditOutlined />} onClick={() => handleEdit(record)} />
+            </Tooltip>
+            <Popconfirm title="确定删除该分组吗?" onConfirm={() => handleDelete(record.id)}>
+              <Tooltip title="删除">
+                <Button type="text" danger size="small" icon={<DeleteOutlined />} />
+              </Tooltip>
             </Popconfirm>
           </Space>
-        ),
+        );
+      },
     },
   ];
 
